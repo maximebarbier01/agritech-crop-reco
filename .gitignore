@@ -13,12 +13,14 @@ dist/
 # Secrets (URL Neon, tokens Docker Hub...)
 .env
 
-# Données : jamais versionnées, seules les empreintes SHA256 le sont
+# Données brutes : jamais versionnées, seules les empreintes SHA256 le sont
 data/raw/*
 !data/raw/.gitkeep
 !data/raw/SHA256SUMS
 data/processed/*
 !data/processed/.gitkeep
+# Livrable de l'étape 1 (1,2 Mo) : source de vérité de l'entraînement, utilisé par la CI
+!data/processed/crop_yield_consolidated.csv
 
 # MLflow local
 mlflow.db
