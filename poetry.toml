@@ -1,0 +1,3 @@
+# Poetry installe dans l'env conda actif (agritech-crop-reco), jamais dans un .venv.
+[virtualenvs]
+create = false

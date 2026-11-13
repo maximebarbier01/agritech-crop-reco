@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Secrets (URL Neon, tokens Docker Hub...)
+.env
+
+# Données : jamais versionnées, seules les empreintes SHA256 le sont
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/SHA256SUMS
+data/processed/*
+!data/processed/.gitkeep
+
+# MLflow local
+mlflow.db
+mlflow.db-*
+mlruns/
+mlartifacts/
+
+# Modèles (décision de versionnement à l'étape 3)
+models/*
+!models/.gitkeep
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+Zone.Identifier
+*:Zone.Identifier

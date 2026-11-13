@@ -1,0 +1,12 @@
+[project]
+seed = 42
+
+[paths]
+raw = "data/raw"
+processed = "data/processed"
+models = "models"
+
+[mlflow]
+experiment = "agritech-crop-yield"
+# Base locale utilisée quand MLFLOW_TRACKING_URI n'est pas défini.
+local_db = "mlflow.db"
