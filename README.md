@@ -7,7 +7,23 @@ Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker) interrogée par une interface **Streamlit** (aucune logique ML). Expériences suivies avec **MLflow**.
 
-> Projet en cours. Étape actuelle : **0 – squelette du dépôt**.
+> Projet en cours. Étape terminée : **1 – exploration, fusion, ACP**. Prochaine : **2 – modèle + MLflow**.
+
+## Étape 1 – données (notebooks)
+
+| Notebook | Contenu |
+|---|---|
+| `01_eda.ipynb` | exploration séparée des deux jeux, défauts détectés, décisions de nettoyage |
+| `02_fusion.ipynb` | nettoyage, mesure de l'effet engrais / irrigation, fusion, contrôles qualité, résumé des choix |
+| `03_acp.ipynb` | ACP (Kaggle) validée sur FAO, variables clés |
+
+Stratégie de fusion : les observations **FAO** (pays × culture × année) forment la base, car elles seules départagent les cultures ; le jeu **Kaggle** (simulé, sans effet culture) fournit le gain relatif dû à l'engrais (≈ +45 %) et à l'irrigation (≈ +36 %), joint par culture.
+
+Régénérer le dataset consolidé (`data/processed/crop_yield_consolidated.csv`, versionné) :
+
+```bash
+python -m agritech_crop_reco.data.merge
+```
 
 ## Structure
 
@@ -18,7 +34,7 @@ src/agritech_crop_reco/ logique réutilisable (données, features, entraînement
 notebooks/              EDA, fusion, ACP, modélisation
 configs/default.toml    seed, chemins, expérience MLflow
 data/raw/               données sources (non versionnées, empreintes dans SHA256SUMS)
-data/processed/         dataset consolidé (non versionné)
+data/processed/         dataset consolidé (versionné)
 models/                 modèle entraîné (.joblib)
 reports/                figures et captures MLflow pour le rapport métier
 docs/                   documentation (dont le pipeline CI/CD)
