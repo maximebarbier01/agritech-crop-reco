@@ -7,7 +7,7 @@ Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker) interrogée par une interface **Streamlit** (aucune logique ML). Expériences suivies avec **MLflow**.
 
-> Projet en cours. Étape terminée : **1 – exploration, fusion, ACP**. Prochaine : **2 – modèle + MLflow**.
+> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**. Prochaine : **3 – API FastAPI**.
 
 ## Étape 1 – données (notebooks)
 
@@ -16,6 +16,7 @@ Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker)
 | `01_eda.ipynb` | exploration séparée des deux jeux, défauts détectés, décisions de nettoyage |
 | `02_fusion.ipynb` | nettoyage, mesure de l'effet engrais / irrigation, fusion, contrôles qualité, résumé des choix |
 | `03_acp.ipynb` | ACP (Kaggle) validée sur FAO, variables clés |
+| `04_modelisation.ipynb` | sélection, optimisation, évaluation, interprétation du modèle |
 
 Stratégie de fusion : les observations **FAO** (pays × culture × année) forment la base, car elles seules départagent les cultures ; le jeu **Kaggle** (simulé, sans effet culture) fournit le gain relatif dû à l'engrais (≈ +45 %) et à l'irrigation (≈ +36 %), joint par culture.
 
@@ -39,6 +40,25 @@ models/                 modèle entraîné (.joblib)
 reports/                figures et captures MLflow pour le rapport métier
 docs/                   documentation (dont le pipeline CI/CD)
 tests/                  tests pytest
+```
+
+## Étape 2 – modèle de rendement
+
+| Élément | Choix |
+|---|---|
+| Entrées | culture, température, pluie, pesticides (ni pays ni année : non saisis dans l'application) |
+| Test | 21 pays figés dans `configs/test_countries.json`, jamais utilisés pour régler |
+| Validation | `GroupKFold` à 5 plis **par pays** |
+| Sélection (MLflow `agritech-crop-yield-01-selection`) | référence naïve + 3 modèles × cible brute/log × pesticides brut/log/absent |
+| Optimisation (MLflow `agritech-crop-yield-02-optimisation`) | `RandomizedSearchCV`, 30 essais |
+| Modèle retenu | HistGradientBoosting, cible log, pesticides log |
+
+Résultats sur les pays de test : RMSE 4,67 t/ha (référence 5,79), R² 0,70, classement des cultures 0,79 (référence 0,72). Détails et interprétation : `notebooks/04_modelisation.ipynb`.
+
+```bash
+python -m agritech_crop_reco.modeling.split    # une seule fois : fige les pays de test (déjà fait)
+python -m agritech_crop_reco.modeling.train    # sélection + optimisation -> models/yield_model.joblib
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 ```
 
 ## Installation (WSL2, conda + Poetry)
