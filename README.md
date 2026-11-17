@@ -7,16 +7,15 @@ Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker) interrogée par une interface **Streamlit** (aucune logique ML). Expériences suivies avec **MLflow**.
 
-> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**, **3 – API**. Prochaine : **4 – interface Streamlit**.
+> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**, **3 – API**, **CI** (GitHub Actions). Prochaine : **4 – interface Streamlit**.
 
-## Étape 1 – données (notebooks)
+## Étape 1 – données
 
 | Notebook | Contenu |
 |---|---|
 | `01_eda.ipynb` | exploration séparée des deux jeux, défauts détectés, décisions de nettoyage |
 | `02_fusion.ipynb` | nettoyage, mesure de l'effet engrais / irrigation, fusion, contrôles qualité, résumé des choix |
 | `03_acp.ipynb` | ACP (Kaggle) validée sur FAO, variables clés |
-| `04_modelisation.ipynb` | sélection, optimisation, évaluation, interprétation du modèle |
 
 Stratégie de fusion : les observations **FAO** (pays × culture × année) forment la base, car elles seules départagent les cultures ; le jeu **Kaggle** (simulé, sans effet culture) fournit le gain relatif dû à l'engrais (≈ +45 %) et à l'irrigation (≈ +36 %), joint par culture.
 
@@ -30,15 +29,16 @@ python -m agritech_crop_reco.data.merge
 
 ```
 api/                    back-end FastAPI (main.py, Dockerfile, requirements.txt)
-frontend/               front-end Streamlit (app.py, requirements.txt)
-src/agritech_crop_reco/ logique réutilisable (données, features, entraînement, recommandation)
+frontend/               front-end Streamlit (étape 4, à venir)
+src/agritech_crop_reco/ logique réutilisable (données, entraînement, service du modèle)
 notebooks/              EDA, fusion, ACP, modélisation
 configs/default.toml    seed, chemins, expérience MLflow
 data/raw/               données sources (non versionnées, empreintes dans SHA256SUMS)
 data/processed/         dataset consolidé (versionné)
 models/                 modèle servi par l'API (.joblib + fiche + gains pratiques, versionnés)
 reports/                figures et captures MLflow pour le rapport métier
-docs/                   documentation (dont le pipeline CI/CD)
+docs/                   documentation (pipeline CI/CD : docs/ci-cd.md)
+.github/workflows/      CI GitHub Actions (ci.yml)
 tests/                  tests pytest
 ```
 
@@ -53,7 +53,7 @@ tests/                  tests pytest
 | Optimisation (MLflow `agritech-crop-yield-02-optimisation`) | `RandomizedSearchCV`, 30 essais |
 | Modèle retenu | HistGradientBoosting, cible log, pesticides log |
 
-Résultats sur les pays de test : RMSE 4,67 t/ha (référence 5,79), R² 0,70, classement des cultures 0,79 (référence 0,72). Détails et interprétation : `notebooks/04_modelisation.ipynb`.
+Résultats sur les pays de test : RMSE 4,67 t/ha (référence 5,79), R² 0,70, classement des cultures 0,79 (référence 0,72). Détails et interprétation : `notebooks/04_modelisation.ipynb` (sélection, optimisation, évaluation, interprétation).
 
 ```bash
 python -m agritech_crop_reco.modeling.split    # une seule fois : fige les pays de test (déjà fait)
@@ -118,12 +118,16 @@ Une seule variable choisit la base de suivi, `MLFLOW_TRACKING_URI` (voir `.env.e
 | Contexte | Valeur | Stockage des métadonnées | Artefacts |
 |---|---|---|---|
 | Local (défaut) | vide | `mlflow.db` (SQLite) | dossier local |
-| CI (GitHub Actions) | secret `MLFLOW_TRACKING_URI` | PostgreSQL **Neon** | non conservés (le modèle de référence est entraîné en local) |
+| Distant (Neon) | `MLFLOW_TRACKING_URI` dans `.env` ou secret GitHub | PostgreSQL **Neon** | non conservés (le modèle de référence est entraîné en local) |
 
-## Qualité
+La CI actuelle ne l'utilise pas : les tests n'écrivent pas dans MLflow.
+
+## Qualité et CI
 
 ```bash
 pytest
 ruff check .
 black --check .
 ```
+
+À chaque *pull request* et à chaque poussée sur `main`, GitHub Actions rejoue ces trois contrôles, puis construit l'image Docker de l'API et vérifie qu'elle répond (`/health`, `/predict`, `/recommend`). Détails : [`docs/ci-cd.md`](docs/ci-cd.md).

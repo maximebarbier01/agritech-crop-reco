@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Une seule exécution par branche : une nouvelle poussée annule la précédente.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  POETRY_VERSION: "2.3.4"
+
+jobs:
+  quality:
+    name: Qualité (ruff, black, pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Poetry
+        run: pipx install "poetry==${POETRY_VERSION}"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      # poetry.toml : virtualenvs.create = false -> installation dans le Python de la CI
+      - name: Installer les dépendances
+        run: |
+          poetry check --lock
+          poetry install --with ml,api,dev
+
+      - name: ruff
+        run: ruff check .
+
+      - name: black
+        run: black --check .
+
+      # data/processed (versionné) et models/ (versionné) suffisent : pas de données brutes.
+      - name: Tests
+        run: pytest --cov --cov-report=term-missing
+
+  docker:
+    name: Image Docker de l'API
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construire l'image
+        run: docker build -f api/Dockerfile -t agritech-crop-api .
+
+      - name: Démarrer le conteneur et vérifier l'API
+        run: |
+          docker run -d --name api -p 8000:8000 agritech-crop-api
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/health && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS -X POST http://127.0.0.1:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"crop":"Wheat","avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":12000}'
+          curl -fsS -X POST http://127.0.0.1:8000/recommend \
+            -H "Content-Type: application/json" \
+            -d '{"avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":12000}'
+
+      - name: Logs du conteneur (en cas d'échec)
+        if: failure()
+        run: docker logs api
