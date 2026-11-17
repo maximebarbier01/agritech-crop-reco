@@ -1,0 +1,64 @@
+{
+  "trained_at": "2026-11-14T09:31:52+00:00",
+  "git_sha": "57b0223",
+  "dataset_sha256": "35a7bf9a0d5510030aeb31459c0af4ec746b642761bd6ec458366b9df17a18a5",
+  "mlflow_run_id": "263cffb6ffd140dca9f4822ae32304d0",
+  "model": "hist_gradient_boosting",
+  "target": "log",
+  "pesticides": "log",
+  "features": [
+    "crop",
+    "avg_temp_c",
+    "rainfall_mm",
+    "pesticides_tonnes"
+  ],
+  "best_params": {
+    "l2_regularization": 0.0006026889128682511,
+    "learning_rate": 0.01699897838270077,
+    "max_iter": 430,
+    "max_leaf_nodes": 18,
+    "min_samples_leaf": 28
+  },
+  "cv_rmse_default": 5.137954590981356,
+  "cv_rmse_tuned": 4.966684212605687,
+  "test_metrics": {
+    "rmse": 4.668952567526498,
+    "mae": 2.5880754768956487,
+    "r2": 0.6992810764810584,
+    "ranking_spearman": 0.7935162303550473
+  },
+  "baseline_test_metrics": {
+    "rmse": 5.787117745037605,
+    "mae": 3.1938455157992562,
+    "r2": 0.5379952171788309,
+    "ranking_spearman": 0.7173553582704733
+  },
+  "n_train_rows": 10978,
+  "n_test_rows": 2152,
+  "training_ranges": {
+    "avg_temp_c": [
+      1.3,
+      30.42
+    ],
+    "rainfall_mm": [
+      51.0,
+      3142.0
+    ],
+    "pesticides_tonnes": [
+      0.04,
+      367778.0
+    ]
+  },
+  "crops": [
+    "Cassava",
+    "Maize",
+    "Plantains and others",
+    "Potatoes",
+    "Rice",
+    "Sorghum",
+    "Soybean",
+    "Sweet potatoes",
+    "Wheat",
+    "Yams"
+  ]
+}

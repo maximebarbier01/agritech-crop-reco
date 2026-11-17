@@ -35,7 +35,7 @@ from sklearn.base import clone
 from sklearn.model_selection import GroupKFold, RandomizedSearchCV
 
 from agritech_crop_reco.config import PROJECT_ROOT, Settings, load_settings
-from agritech_crop_reco.data.merge import CONSOLIDATED_FILE
+from agritech_crop_reco.data.merge import CONSOLIDATED_FILE, GAIN_COLS
 from agritech_crop_reco.modeling.features import (
     MODELS,
     PESTICIDE_VARIANTS,
@@ -46,6 +46,7 @@ from agritech_crop_reco.modeling.features import (
 )
 from agritech_crop_reco.modeling.metrics import all_metrics
 from agritech_crop_reco.modeling.split import load_test_countries, split_train_test
+from agritech_crop_reco.serving import GAINS_FILE, MODEL_CARD_FILE, MODEL_FILE
 
 N_FOLDS = 5
 N_ITER_SEARCH = 30
@@ -53,8 +54,6 @@ SKOPS_TRUSTED_TYPES = ["sklearn.ensemble._hist_gradient_boosting.predictor.TreeP
 N_PROBE = 300  # parcelles fictives pour mesurer si le classement des cultures varie
 REPORTS_DIR = PROJECT_ROOT / "reports"
 SELECTION_FILE = REPORTS_DIR / "selection_results.csv"
-MODEL_FILE = "yield_model.joblib"
-MODEL_CARD_FILE = "model_card.json"
 
 PARAM_SPACES = {
     "ridge": {"alpha": loguniform(1e-3, 1e3)},
@@ -238,6 +237,17 @@ def select_config(results: pd.DataFrame) -> int:
 # --------------------------------------------------------------------------- étape 2
 
 
+def write_practice_gains(settings: Settings) -> Path:
+    """Exporte les gains engrais / irrigation par culture (issus du dataset consolidé)
+    à côté du modèle : l'API n'a ainsi besoin d'aucun fichier de données."""
+    df = pd.read_csv(settings.processed_dir / CONSOLIDATED_FILE)
+    per_crop = df.groupby("crop")[GAIN_COLS + ["gain_source"]].first()
+    payload = {crop: row.to_dict() for crop, row in per_crop.iterrows()}
+    path = settings.models_dir / GAINS_FILE
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    return path
+
+
 def _param_prefix(target: str) -> str:
     # Pipeline -> "model__" ; cible en log -> TransformedTargetRegressor(regressor=Pipeline)
     return "regressor__model__" if target == "log" else "model__"
@@ -352,6 +362,7 @@ def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
         }
         settings.models_dir.mkdir(parents=True, exist_ok=True)
         joblib.dump(search.best_estimator_, settings.models_dir / MODEL_FILE)
+        write_practice_gains(settings)
         (settings.models_dir / MODEL_CARD_FILE).write_text(
             json.dumps(card, indent=2, ensure_ascii=False)
         )
