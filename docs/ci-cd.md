@@ -7,7 +7,7 @@ précédente de la même branche.
 | Job | Contenu | Dépend de |
 |---|---|---|
 | `quality` | `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
-| `docker` | `docker build -f api/Dockerfile`, démarrage du conteneur, appels `/health`, `/predict`, `/recommend` | `quality` |
+| `docker` | build de l'image de l'API (appels `/health`, `/predict`, `/recommend`), puis de l'image du front, reliée à l'API sur un réseau Docker | `quality` |
 
 ## Ce que la CI suppose
 
@@ -15,8 +15,8 @@ précédente de la même branche.
   la CI n'a besoin d'aucune donnée brute ni d'aucun secret.
 - Le modèle n'est **pas** réentraîné en CI : il est entraîné en local
   (`python -m agritech_crop_reco.modeling.train`) puis commité.
-- Après un changement de dépendances : `poetry lock`, puis régénérer `api/requirements.txt`
-  (voir le README). `poetry check --lock` fait échouer la CI si `poetry.lock` est périmé.
+- Après un changement de dépendances : `poetry lock`, puis régénérer `api/requirements.txt` et
+  `frontend/requirements.txt` (voir le README). `poetry check --lock` fait échouer la CI si `poetry.lock` est périmé.
 
 ## Reproduire la CI en local
 

@@ -48,7 +48,7 @@ jobs:
         run: pytest --cov --cov-report=term-missing
 
   docker:
-    name: Image Docker de l'API
+    name: Images Docker (API et front)
     runs-on: ubuntu-latest
     needs: quality
     steps:
@@ -72,6 +72,23 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":12000}'
 
-      - name: Logs du conteneur (en cas d'échec)
+      - name: Construire l'image du front et le relier à l'API
+        run: |
+          docker build -f frontend/Dockerfile -t agritech-crop-front .
+          docker network create agri
+          docker rm -f api
+          docker run -d --name api --network agri agritech-crop-api
+          docker run -d --name front --network agri -p 8501:8501 agritech-crop-front
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8501/_stcore/health && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8501/_stcore/health
+          # Le front voit l'API par son nom de service (API_URL=http://api:8000 par défaut)
+          docker exec front python -c "import api_client; print(api_client.health())"
+
+      - name: Logs des conteneurs (en cas d'échec)
         if: failure()
-        run: docker logs api
+        run: |
+          docker logs api
+          docker logs front

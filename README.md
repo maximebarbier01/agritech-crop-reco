@@ -29,7 +29,7 @@ python -m agritech_crop_reco.data.merge
 
 ```
 api/                    back-end FastAPI (main.py, Dockerfile, requirements.txt)
-frontend/               front-end Streamlit (app.py, api_client.py, requirements.txt)
+frontend/               front-end Streamlit (app.py, api_client.py, Dockerfile, requirements.txt)
 src/agritech_crop_reco/ logique réutilisable (données, entraînement, service du modèle)
 notebooks/              EDA, fusion, ACP, modélisation
 configs/default.toml    seed, chemins, expérience MLflow
@@ -100,6 +100,21 @@ L'interface n'embarque aucun modèle : elle appelle l'API (`frontend/api_client.
 uvicorn api.main:app --reload                 # terminal 1 -> http://127.0.0.1:8000
 streamlit run frontend/app.py                 # terminal 2 -> http://localhost:8501
 API_URL=https://mon-api.example streamlit run frontend/app.py   # autre adresse d'API
+```
+
+Avec Docker (le front joint l'API par `API_URL`, `http://api:8000` par défaut) :
+
+```bash
+docker build -f frontend/Dockerfile -t agritech-crop-front .     # depuis la racine du dépôt
+docker network create agri
+docker run -d --name api   --network agri agritech-crop-api
+docker run -d --name front --network agri -p 8501:8501 agritech-crop-front   # -> http://localhost:8501
+```
+
+`frontend/requirements.txt` est exporté de `poetry.lock` :
+
+```bash
+poetry export --only front --without-hashes -f requirements.txt -o frontend/requirements.txt
 ```
 
 ## Installation (WSL2, conda + Poetry)
