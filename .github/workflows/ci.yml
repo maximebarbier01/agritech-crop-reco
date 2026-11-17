@@ -35,7 +35,7 @@ jobs:
       - name: Installer les dépendances
         run: |
           poetry check --lock
-          poetry install --with ml,api,dev
+          poetry install --with ml,api,front,dev
 
       - name: ruff
         run: ruff check .

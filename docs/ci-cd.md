@@ -6,7 +6,7 @@ précédente de la même branche.
 
 | Job | Contenu | Dépend de |
 |---|---|---|
-| `quality` | `poetry check --lock`, installation (`ml`, `api`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
+| `quality` | `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
 | `docker` | `docker build -f api/Dockerfile`, démarrage du conteneur, appels `/health`, `/predict`, `/recommend` | `quality` |
 
 ## Ce que la CI suppose

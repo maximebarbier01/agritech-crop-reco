@@ -7,7 +7,7 @@ Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker) interrogée par une interface **Streamlit** (aucune logique ML). Expériences suivies avec **MLflow**.
 
-> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**, **3 – API**, **CI** (GitHub Actions). Prochaine : **4 – interface Streamlit**.
+> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**, **3 – API**, **CI** (GitHub Actions), **4 – interface Streamlit**. Prochaine : déploiement (CD).
 
 ## Étape 1 – données
 
@@ -29,7 +29,7 @@ python -m agritech_crop_reco.data.merge
 
 ```
 api/                    back-end FastAPI (main.py, Dockerfile, requirements.txt)
-frontend/               front-end Streamlit (étape 4, à venir)
+frontend/               front-end Streamlit (app.py, api_client.py, requirements.txt)
 src/agritech_crop_reco/ logique réutilisable (données, entraînement, service du modèle)
 notebooks/              EDA, fusion, ACP, modélisation
 configs/default.toml    seed, chemins, expérience MLflow
@@ -85,6 +85,21 @@ docker run --rm -p 8000:8000 agritech-crop-api
 
 ```bash
 poetry export --only main,api --without-hashes -f requirements.txt -o api/requirements.txt
+```
+
+## Étape 4 – interface Streamlit
+
+L'interface n'embarque aucun modèle : elle appelle l'API (`frontend/api_client.py`).
+
+- **Prédire** : choisir une culture + les conditions de la parcelle -> rendement estimé, avertissements éventuels.
+- **Recommander** : conditions seules -> toutes les cultures classées (graphique + meilleure culture).
+- Conditions saisies dans la barre latérale ; engrais / irrigation facultatifs (« non renseigné » = pratique moyenne).
+- API injoignable ou valeur refusée (422) : message d'erreur explicite, sans plantage.
+
+```bash
+uvicorn api.main:app --reload                 # terminal 1 -> http://127.0.0.1:8000
+streamlit run frontend/app.py                 # terminal 2 -> http://localhost:8501
+API_URL=https://mon-api.example streamlit run frontend/app.py   # autre adresse d'API
 ```
 
 ## Installation (WSL2, conda + Poetry)
