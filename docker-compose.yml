@@ -1,0 +1,29 @@
+# Lance toute l'application : API (modèle) + interface Streamlit.
+#   docker compose up --build        -> front http://localhost:8501 · API http://localhost:8000/docs
+#   docker compose down              -> arrêt
+# Les deux images se construisent depuis la RACINE du dépôt.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    image: agritech-crop-api
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  front:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: agritech-crop-front
+    environment:
+      # Nom du service ci-dessus : le front joint l'API par le réseau interne de Compose
+      API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy   # attend le HEALTHCHECK de l'API (modèle chargé)
+    restart: unless-stopped

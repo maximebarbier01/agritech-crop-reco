@@ -29,6 +29,7 @@ python -m agritech_crop_reco.data.merge
 
 ```
 api/                    back-end FastAPI (main.py, Dockerfile, requirements.txt)
+docker-compose.yml      API + front en une commande
 frontend/               front-end Streamlit (app.py, api_client.py, Dockerfile, requirements.txt)
 src/agritech_crop_reco/ logique réutilisable (données, entraînement, service du modèle)
 notebooks/              EDA, fusion, ACP, modélisation
@@ -102,7 +103,14 @@ streamlit run frontend/app.py                 # terminal 2 -> http://localhost:8
 API_URL=https://mon-api.example streamlit run frontend/app.py   # autre adresse d'API
 ```
 
-Avec Docker (le front joint l'API par `API_URL`, `http://api:8000` par défaut) :
+Toute l'application d'une commande (Docker Compose : l'API démarre d'abord, le front attend qu'elle soit prête) :
+
+```bash
+docker compose up --build        # front http://localhost:8501 · API http://localhost:8000/docs
+docker compose down
+```
+
+Ou image par image (le front joint l'API par `API_URL`, `http://api:8000` par défaut) :
 
 ```bash
 docker build -f frontend/Dockerfile -t agritech-crop-front .     # depuis la racine du dépôt
