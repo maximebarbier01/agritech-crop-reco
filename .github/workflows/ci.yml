@@ -54,16 +54,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Construire l'image
-        run: docker build -f api/Dockerfile -t agritech-crop-api .
+      # Même commande qu'en local : construit les deux images, démarre l'API puis le front
+      # (le front attend le HEALTHCHECK de l'API) et patiente jusqu'à ce que tout soit « healthy ».
+      - name: Construire et démarrer l'application
+        run: docker compose up -d --build --wait --wait-timeout 120
 
-      - name: Démarrer le conteneur et vérifier l'API
+      - name: Vérifier l'API
         run: |
-          docker run -d --name api -p 8000:8000 agritech-crop-api
-          for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:8000/health && break
-            sleep 2
-          done
           curl -fsS http://127.0.0.1:8000/health
           curl -fsS -X POST http://127.0.0.1:8000/predict \
             -H "Content-Type: application/json" \
@@ -72,23 +69,16 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":12000}'
 
-      - name: Construire l'image du front et le relier à l'API
+      - name: Vérifier le front et sa liaison avec l'API
         run: |
-          docker build -f frontend/Dockerfile -t agritech-crop-front .
-          docker network create agri
-          docker rm -f api
-          docker run -d --name api --network agri agritech-crop-api
-          docker run -d --name front --network agri -p 8501:8501 agritech-crop-front
-          for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:8501/_stcore/health && break
-            sleep 2
-          done
           curl -fsS http://127.0.0.1:8501/_stcore/health
-          # Le front voit l'API par son nom de service (API_URL=http://api:8000 par défaut)
-          docker exec front python -c "import api_client; print(api_client.health())"
+          # Le front voit l'API par son nom de service (API_URL=http://api:8000)
+          docker compose exec -T front python -c "import api_client; print(api_client.health())"
 
       - name: Logs des conteneurs (en cas d'échec)
         if: failure()
-        run: |
-          docker logs api
-          docker logs front
+        run: docker compose logs
+
+      - name: Arrêter l'application
+        if: always()
+        run: docker compose down

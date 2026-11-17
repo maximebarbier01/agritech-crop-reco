@@ -7,7 +7,7 @@ précédente de la même branche.
 | Job | Contenu | Dépend de |
 |---|---|---|
 | `quality` | `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
-| `docker` | build de l'image de l'API (appels `/health`, `/predict`, `/recommend`), puis de l'image du front, reliée à l'API sur un réseau Docker | `quality` |
+| `docker` | `docker compose up --build --wait` (API + front), puis appels `/health`, `/predict`, `/recommend` et liaison front → API | `quality` |
 
 ## Ce que la CI suppose
 
@@ -23,8 +23,8 @@ précédente de la même branche.
 ```bash
 poetry check --lock
 ruff check . && black --check . && pytest --cov
-docker build -f api/Dockerfile -t agritech-crop-api .
-docker run --rm -p 8000:8000 agritech-crop-api   # puis http://127.0.0.1:8000/health
+docker compose up -d --build --wait   # puis http://127.0.0.1:8000/health et :8501
+docker compose down
 ```
 
 ## Déploiement continu (CD)
