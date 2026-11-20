@@ -80,20 +80,29 @@ Aucun secret n'est écrit dans le dépôt. À créer dans GitHub : *Settings -> 
 | `DOCKERHUB_USERNAME` | variable | identifiant Docker Hub (pas secret : il apparaît dans le nom de l'image) | `cd.yml` |
 | `DOCKERHUB_TOKEN` | **secret** | jeton d'accès Docker Hub (*Account settings -> Personal access tokens*, droits *Read & Write*) | `cd.yml` |
 | `RENDER_DEPLOY_HOOK_URL` | **secret** | URL du *deploy hook* du service Render (*Settings -> Deploy Hook*) | `cd.yml` |
-| `API_PUBLIC_URL` | variable | URL publique de l'API, ex. `https://agritech-crop-api.onrender.com` | `cd.yml` |
+| `API_PUBLIC_URL` | variable | URL publique de l'API, **sans `/` final** : `https://agritech-crop-api-latest.onrender.com` | `cd.yml` |
 | `MLFLOW_TRACKING_URI` | **secret** | URL **directe** (pas `-pooler`) de la base Neon `mlflow`, copiée telle quelle : `postgresql://…/mlflow?sslmode=require` (pilote psycopg 3, par défaut dans SQLAlchemy 2.1) | `train.yml` |
 
 Sans `RENDER_DEPLOY_HOOK_URL` ou `API_PUBLIC_URL`, l'image est publiée et l'étape correspondante est ignorée avec un avertissement. Sans `MLFLOW_TRACKING_URI`, le pipeline tourne sur une base SQLite éphémère.
 
 **Render** : *New -> Web Service -> Existing image* `docker.io/<utilisateur>/agritech-crop-api:latest`, offre gratuite. Render fournit `PORT`, que le Dockerfile utilise. Le service se met en veille après inactivité : la première requête prend 30 à 60 s.
 
+- Choisir **Existing Image**, pas le dépôt GitHub : sinon Render reconstruit le projet avec son Python par défaut (3.14) au lieu d'utiliser l'image testée par la CI.
+- Les sous-domaines `onrender.com` sont **partagés entre tous les utilisateurs** : si le nom est déjà pris, Render ajoute un suffixe (ici `agritech-crop-api-latest`). Toujours copier l'URL affichée par Render ; `https://agritech-crop-api.onrender.com` appartient à un autre service. Le front le détecte : si `/health` ne répond pas comme l'API Agritech, il affiche « L'adresse configurée ne correspond pas à l'API Agritech ».
+
 **Streamlit Community Cloud** : *Create app* -> dépôt `agritech-crop-reco`, branche `main`, fichier `frontend/app.py`, Python 3.11 (*Advanced settings*). Dans *Secrets* :
 
 ```toml
-API_URL = "https://agritech-crop-api.onrender.com"
+API_URL = "https://agritech-crop-api-latest.onrender.com"
 ```
 
 Les secrets de premier niveau sont exposés comme variables d'environnement : `api_client.py` lit `API_URL` sans modification.
+
+## Protection de `main`
+
+Ruleset GitHub « CI main » (*Settings -> Rules -> Rulesets*), actif sur `main` : passage obligatoire par une *pull request*, contrôles **« Qualité (ruff, black, pytest) »** et **« Images Docker (API et front) »** au vert, suppression et réécriture d'historique interdites. Aucun outil (ex. Streamlit Cloud, qui propose d'ajouter un dossier `.devcontainer`) ne peut plus pousser directement sur `main`.
+
+Ne pas exiger « CI / Qualité … » : c'est le nom du job quand **cd.yml** l'appelle, après le merge ; il n'est jamais rapporté sur une PR et la bloquerait indéfiniment.
 
 ## Ce que la CI suppose
 
