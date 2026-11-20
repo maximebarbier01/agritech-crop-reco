@@ -1,3 +1,3 @@
 """Prédiction de rendement agricole et recommandation de cultures."""
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"

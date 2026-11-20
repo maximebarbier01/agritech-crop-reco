@@ -27,6 +27,11 @@ DEFAULT_TEMP_C = 18.5
 DEFAULT_RAIN_MM = 900.0
 
 
+def fr(x: float, decimals: int = 2) -> str:
+    """Nombre au format français : virgule décimale, espace fine pour les milliers."""
+    return f"{x:,.{decimals}f}".replace(",", "\u202f").replace(".", ",")
+
+
 def label(crop: str) -> str:
     return CROP_LABELS.get(crop, crop)
 
@@ -115,10 +120,10 @@ def tab_predict(conditions: dict) -> None:
     if result is None:
         return
     show_warnings(result["warnings"])
-    st.metric(f"Rendement estimé – {label(crop)}", f"{result['yield_t_ha']:.2f} t/ha")
+    st.metric(f"Rendement estimé – {label(crop)}", f"{fr(result['yield_t_ha'])} t/ha")
     st.caption(
-        f"Modèle seul (pratiques moyennes) : {result['yield_base_t_ha']:.2f} t/ha · "
-        f"ajustement engrais / irrigation : × {result['practice_factor']:.2f}"
+        f"Modèle seul (pratiques moyennes) : {fr(result['yield_base_t_ha'])} t/ha · "
+        f"ajustement engrais / irrigation : × {fr(result['practice_factor'])}"
     )
 
 
@@ -149,21 +154,20 @@ def tab_recommend(conditions: dict) -> None:
     table = ranking_table(result["ranking"])
     best = table.iloc[0]
     st.success(
-        f"Meilleure culture : **{best['Culture']}** ({best['Rendement estimé (t/ha)']:.2f} t/ha)"
+        f"Meilleure culture : **{best['Culture']}** ({fr(best['Rendement estimé (t/ha)'])} t/ha)"
     )
     fig = px.bar(table, x="Rendement estimé (t/ha)", y="Culture", orientation="h")
     fig.update_yaxes(categoryorder="total ascending")
     st.plotly_chart(fig, width="stretch")
-    st.dataframe(
-        table,
-        hide_index=True,
-        width="stretch",
-        column_config={
-            "Rendement estimé (t/ha)": st.column_config.NumberColumn(format="%.2f"),
-            "Modèle seul (t/ha)": st.column_config.NumberColumn(format="%.2f"),
-            "Ajustement pratiques": st.column_config.NumberColumn(format="× %.2f"),
-        },
+    # Tableau d'affichage : valeurs formatées en français (le classement est déjà fait)
+    display = table.assign(
+        **{
+            "Rendement estimé (t/ha)": table["Rendement estimé (t/ha)"].map(fr),
+            "Modèle seul (t/ha)": table["Modèle seul (t/ha)"].map(fr),
+            "Ajustement pratiques": table["Ajustement pratiques"].map(lambda v: f"× {fr(v)}"),
+        }
     )
+    st.dataframe(display, hide_index=True, width="stretch")
     st.caption(result["note"])
 
 

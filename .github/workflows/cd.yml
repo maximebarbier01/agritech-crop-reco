@@ -32,7 +32,7 @@ jobs:
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Vérifier la configuration Docker Hub
         env:
@@ -44,16 +44,16 @@ jobs:
             exit 1
           fi
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # Tags : latest (main), sha-xxxxxxx (toujours), X.Y.Z (si le commit est tagué vX.Y.Z)
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -62,7 +62,7 @@ jobs:
             type=semver,pattern={{version}}
 
       - id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: api/Dockerfile
