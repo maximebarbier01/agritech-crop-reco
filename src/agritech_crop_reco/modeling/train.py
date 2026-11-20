@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import time
 from datetime import UTC, datetime
@@ -109,7 +110,13 @@ def load_train_test(settings: Settings) -> tuple[pd.DataFrame, pd.DataFrame, str
 
 
 def _common_tags(dataset_sha: str, stage: str) -> dict[str, str]:
-    return {"stage": stage, "git_sha": _git_sha(), "dataset_sha256": dataset_sha[:12]}
+    return {
+        "stage": stage,
+        "git_sha": _git_sha(),
+        "dataset_sha256": dataset_sha[:12],
+        # Distingue dans MLflow les runs de la CI (GitHub Actions) des runs locaux
+        "source": "ci" if os.getenv("GITHUB_ACTIONS") == "true" else "local",
+    }
 
 
 def _setup_mlflow(settings: Settings, suffix: str) -> None:

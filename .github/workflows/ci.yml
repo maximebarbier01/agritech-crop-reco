@@ -1,13 +1,15 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  push:
+    branches: [develop]   # branche d'intégration (après chaque merge de PR)
+  workflow_call:          # réutilisé par cd.yml : tests -> build -> déploiement sur main
 
 # Une seule exécution par branche : une nouvelle poussée annule la précédente.
+# (github.workflow = "CD" quand ce fichier est appelé par cd.yml : pas de conflit de groupe)
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

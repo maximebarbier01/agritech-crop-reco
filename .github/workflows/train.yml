@@ -1,0 +1,79 @@
+name: Train
+
+# Pipeline MLOps automatisé : prétraitement -> entraînement -> évaluation -> garde-fou.
+# Les runs sont suivis dans MLflow (base PostgreSQL Neon, secret MLFLOW_TRACKING_URI) ;
+# sans ce secret, MLflow écrit dans une base SQLite éphémère du runner (le contrôle reste valable).
+# Le modèle servi n'est PAS remplacé : le modèle candidat est joint au run (artefact GitHub).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/agritech_crop_reco/data/**"
+      - "src/agritech_crop_reco/modeling/**"
+      - "src/agritech_crop_reco/pipeline.py"
+      - "data/processed/**"
+      - "configs/**"
+      - "poetry.lock"
+
+concurrency:
+  group: train-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  POETRY_VERSION: "2.3.4"
+
+jobs:
+  train:
+    name: Pipeline d'entraînement + garde-fou
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      POETRY_VIRTUALENVS_CREATE: "true"   # même raison que ci.yml (pas de conda en CI)
+      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Poetry
+        run: pipx install "poetry==${POETRY_VERSION}"
+
+      - uses: actions/setup-python@v5
+        id: python
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Installer les dépendances (cœur + MLflow)
+        run: |
+          poetry env use "${{ steps.python.outputs.python-path }}"
+          poetry install --with ml
+
+      - name: Destination du suivi MLflow
+        run: |
+          if [ -z "$MLFLOW_TRACKING_URI" ]; then
+            echo "::warning::Secret MLFLOW_TRACKING_URI absent : runs MLflow dans une base SQLite éphémère"
+          else
+            echo "Suivi MLflow : base distante (Neon)"
+          fi
+
+      # --no-artifacts : seules les métadonnées (paramètres, métriques) partent dans MLflow
+      # (décision de l'étape 0 : Neon ne stocke pas de fichiers). Code de sortie 1 si le
+      # garde-fou échoue -> le run est rouge et GitHub notifie l'auteur du push.
+      - name: Pipeline (prétraitement -> entraînement -> évaluation -> garde-fou)
+        run: >
+          poetry run python -m agritech_crop_reco.pipeline
+          --no-artifacts --output-dir "${{ runner.temp }}/candidate-model"
+
+      - name: Joindre le modèle candidat et la sélection au run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-model-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/candidate-model/
+            reports/selection_results.csv
+          retention-days: 14
+          if-no-files-found: ignore
