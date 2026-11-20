@@ -1,6 +1,6 @@
 [project]
 name = "agritech-crop-reco"
-version = "0.1.0"
+version = "1.0.0"
 description = "Prédiction de rendement agricole et recommandation de cultures (FastAPI + Streamlit + MLflow)"
 authors = [{ name = "Maxime Barbier" }]
 readme = "README.md"
@@ -24,9 +24,10 @@ packages = [{ include = "agritech_crop_reco", from = "src" }]
 # Entraînement et suivi des expériences (SQLite local ou Neon via MLFLOW_TRACKING_URI)
 [tool.poetry.group.ml.dependencies]
 mlflow = ">=2.14,<4.0"
+# Pilote PostgreSQL (Neon) : psycopg 3 = pilote par défaut de SQLAlchemy 2.1 pour postgresql://
+psycopg = {version = ">=3.2,<4.0", extras = ["binary"]}
 
 # Back-end
-psycopg = {version = ">=3.2,<4.0", extras = ["binary"]}
 [tool.poetry.group.api.dependencies]
 fastapi = ">=0.115,<1.0"
 uvicorn = { version = ">=0.30,<1.0", extras = ["standard"] }

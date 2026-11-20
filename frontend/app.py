@@ -173,8 +173,9 @@ def main() -> None:
     st.write("Quelle culture choisir pour votre parcelle, et quel rendement en attendre ?")
 
     try:
-        info = health()
-        meta = metadata()
+        with st.spinner("Connexion à l'API… (jusqu'à une minute si le serveur se réveille)"):
+            info = health()
+            meta = metadata()
     except ApiError as exc:
         st.error(str(exc))
         st.stop()

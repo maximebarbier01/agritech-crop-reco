@@ -81,7 +81,7 @@ Aucun secret n'est écrit dans le dépôt. À créer dans GitHub : *Settings -> 
 | `DOCKERHUB_TOKEN` | **secret** | jeton d'accès Docker Hub (*Account settings -> Personal access tokens*, droits *Read & Write*) | `cd.yml` |
 | `RENDER_DEPLOY_HOOK_URL` | **secret** | URL du *deploy hook* du service Render (*Settings -> Deploy Hook*) | `cd.yml` |
 | `API_PUBLIC_URL` | variable | URL publique de l'API, ex. `https://agritech-crop-api.onrender.com` | `cd.yml` |
-| `MLFLOW_TRACKING_URI` | **secret** | URL **directe** (pas `-pooler`) de la base Neon `mlflow` : `postgresql://…/mlflow?sslmode=require` | `train.yml` |
+| `MLFLOW_TRACKING_URI` | **secret** | URL **directe** (pas `-pooler`) de la base Neon `mlflow`, copiée telle quelle : `postgresql://…/mlflow?sslmode=require` (pilote psycopg 3, par défaut dans SQLAlchemy 2.1) | `train.yml` |
 
 Sans `RENDER_DEPLOY_HOOK_URL` ou `API_PUBLIC_URL`, l'image est publiée et l'étape correspondante est ignorée avec un avertissement. Sans `MLFLOW_TRACKING_URI`, le pipeline tourne sur une base SQLite éphémère.
 
