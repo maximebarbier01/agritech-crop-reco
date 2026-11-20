@@ -1,6 +1,6 @@
 [project]
 name = "agritech-crop-reco"
-version = "1.0.0"
+version = "1.0.1"
 description = "Prédiction de rendement agricole et recommandation de cultures (FastAPI + Streamlit + MLflow)"
 authors = [{ name = "Maxime Barbier" }]
 readme = "README.md"
