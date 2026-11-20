@@ -75,6 +75,11 @@ def health() -> dict:
     return _request("GET", "/health")
 
 
+def metadata() -> dict:
+    """Cultures, plages d'entraînement et niveaux d'intensification (pour borner les saisies)."""
+    return _request("GET", "/metadata")
+
+
 def predict(crop: str, conditions: dict) -> dict:
     return _request("POST", "/predict", {"crop": crop, **conditions})
 

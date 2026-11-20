@@ -18,6 +18,7 @@ from agritech_crop_reco import __version__
 from agritech_crop_reco.serving import Conditions, YieldService
 from api.schemas import (
     HealthResponse,
+    MetadataResponse,
     ParcelConditions,
     PredictRequest,
     PredictResponse,
@@ -61,6 +62,18 @@ def _conditions(payload: ParcelConditions) -> Conditions:
 def health(request: Request) -> HealthResponse:
     service = _service(request)
     return HealthResponse(status="ok", model_version=service.version, n_crops=len(service.crops))
+
+
+@app.get("/metadata", response_model=MetadataResponse, tags=["service"])
+def metadata(request: Request) -> MetadataResponse:
+    """Cultures, plages d'entraînement et niveaux d'intensification (pour l'interface)."""
+    service = _service(request)
+    return MetadataResponse(
+        crops=service.crops,
+        training_ranges=service.training_ranges,
+        pesticide_levels=service.pesticide_levels,
+        model_version=service.version,
+    )
 
 
 @app.post("/predict", response_model=PredictResponse, tags=["prédiction"])

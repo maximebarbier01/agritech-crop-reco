@@ -67,6 +67,7 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 | Endpoint | Entrée | Sortie |
 |---|---|---|
 | `GET /health` | – | état du service et version du modèle |
+| `GET /metadata` | – | cultures, plages d'entraînement, niveaux d'intensification (utilisés par l'interface) |
 | `POST /predict` | culture + conditions de la parcelle | rendement prédit (t/ha) |
 | `POST /recommend` | conditions de la parcelle | les 10 cultures classées par rendement décroissant |
 
@@ -93,8 +94,9 @@ poetry export --only main,api --without-hashes -f requirements.txt -o api/requir
 L'interface n'embarque aucun modèle : elle appelle l'API (`frontend/api_client.py`).
 
 - **Prédire** : choisir une culture + les conditions de la parcelle -> rendement estimé, avertissements éventuels.
-- **Recommander** : conditions seules -> toutes les cultures classées (graphique + meilleure culture).
-- Conditions saisies dans la barre latérale ; engrais / irrigation facultatifs (« non renseigné » = pratique moyenne).
+- **Recommander** : conditions seules -> toutes les cultures classées (meilleure culture, graphique à barres et tableau).
+- Conditions dans la barre latérale : **curseurs** de température et de pluie bornés à la plage d'entraînement (lue via `GET /metadata`, pour éviter l'extrapolation) ; **niveau d'intensification** de la région en 5 crans (très faible → très élevé), traduit en tonnes de pesticides par les quantiles 10/30/50/70/90 % des pays d'entraînement, avec saisie précise possible ; engrais / irrigation facultatifs (« non renseigné » = pratique moyenne).
+- Le dernier résultat reste affiché ; si une condition change, il est signalé comme à relancer.
 - API injoignable ou valeur refusée (422) : message d'erreur explicite, sans plantage.
 
 ```bash

@@ -100,6 +100,23 @@ class RecommendResponse(BaseModel):
     )
 
 
+class PesticideLevel(BaseModel):
+    label: str = Field(description="Niveau d'intensification affiché à l'utilisateur")
+    quantile: float = Field(description="Quantile des pays d'entraînement correspondant")
+    pesticides_tonnes: float = Field(description="Valeur envoyée au modèle (tonnes / an)")
+
+
+class MetadataResponse(BaseModel):
+    """Ce dont une interface a besoin pour proposer des saisies dans le domaine du modèle."""
+
+    crops: list[str]
+    training_ranges: dict[str, list[float]] = Field(
+        description="Plage [min, max] de chaque condition vue à l'entraînement"
+    )
+    pesticide_levels: list[PesticideLevel]
+    model_version: str
+
+
 class HealthResponse(BaseModel):
     status: str
     model_version: str

@@ -69,3 +69,14 @@ def test_recommend_ignores_crop_field_if_sent(client):
     # /recommend ne prend que le contexte : un champ "crop" en trop est ignoré
     r = client.post("/recommend", json={**PARCEL, "crop": "Wheat"})
     assert r.status_code == 200 and len(r.json()["ranking"]) == 10
+
+
+def test_metadata_exposes_ranges_and_levels(client):
+    r = client.get("/metadata")
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["crops"]) == 10
+    low, high = body["training_ranges"]["avg_temp_c"]
+    assert low < high
+    levels = [lvl["pesticides_tonnes"] for lvl in body["pesticide_levels"]]
+    assert len(levels) == 5 and levels == sorted(levels)  # du plus faible au plus élevé
