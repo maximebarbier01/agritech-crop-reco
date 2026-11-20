@@ -6,10 +6,12 @@ précédente de la même branche.
 
 | Job | Contenu | Dépend de |
 |---|---|---|
-| `quality` | `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
+| `quality` | venv Poetry sur Python 3.11, `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
 | `docker` | `docker compose up --build --wait` (API + front), puis appels `/health`, `/predict`, `/recommend` et liaison front → API | `quality` |
 
 ## Ce que la CI suppose
+
+- **Environnement Python** : en local, `poetry.toml` (`virtualenvs.create = false`) installe dans l'env conda actif. La CI n'a pas de conda : la variable `POETRY_VIRTUALENVS_CREATE=true` y force un venv isolé basé sur le Python 3.11 de `setup-python` (sinon Poetry installerait dans le Python système du runner, en 3.14, et échouerait sur les paquets Debian).
 
 - Le modèle (`models/`, < 1 Mo) et le dataset consolidé (`data/processed/`) sont **versionnés** :
   la CI n'a besoin d'aucune donnée brute ni d'aucun secret.

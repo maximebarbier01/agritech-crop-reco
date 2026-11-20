@@ -20,6 +20,12 @@ jobs:
   quality:
     name: Qualité (ruff, black, pytest)
     runs-on: ubuntu-latest
+    env:
+      # En local, poetry.toml (create = false) installe dans l'env conda actif.
+      # En CI, il n'y a pas de conda : sans cette surcharge, Poetry (installé par pipx sur
+      # le Python système 3.14 du runner) installerait dans ce Python système et échouerait
+      # sur les paquets Debian. On force donc un venv isolé, basé sur le Python 3.11 ci-dessous.
+      POETRY_VIRTUALENVS_CREATE: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -27,25 +33,27 @@ jobs:
         run: pipx install "poetry==${POETRY_VERSION}"
 
       - uses: actions/setup-python@v5
+        id: python
         with:
           python-version: "3.11"
           cache: poetry
 
-      # poetry.toml : virtualenvs.create = false -> installation dans le Python de la CI
-      - name: Installer les dépendances
+      - name: Installer les dépendances (venv Python 3.11)
         run: |
+          poetry env use "${{ steps.python.outputs.python-path }}"
           poetry check --lock
           poetry install --with ml,api,front,dev
+          poetry run python --version
 
       - name: ruff
-        run: ruff check .
+        run: poetry run ruff check .
 
       - name: black
-        run: black --check .
+        run: poetry run black --check .
 
       # data/processed (versionné) et models/ (versionné) suffisent : pas de données brutes.
       - name: Tests
-        run: pytest --cov --cov-report=term-missing
+        run: poetry run pytest --cov --cov-report=term-missing
 
   docker:
     name: Images Docker (API et front)
