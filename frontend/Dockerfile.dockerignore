@@ -1,0 +1,5 @@
+# Contexte de build du front : seul frontend/ est utile (le .dockerignore racine sert à l'API).
+*
+!frontend/requirements.txt
+!frontend/app.py
+!frontend/api_client.py

@@ -1,0 +1,19 @@
+# Contexte de build minimal : seuls configs/, src/, api/ et models/ sont copiés par
+# api/Dockerfile ; on exclut le reste pour un build rapide et sans fuite de données.
+.git
+.github
+.env
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+data/
+notebooks/
+reports/
+docs/
+mlflow.db
+mlflow.db-*
+mlruns/
+mlartifacts/
+frontend/
+tests/
