@@ -3,6 +3,16 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions [SemVer](https://semver.org/lang/fr/).
 Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbier01/agritech-crop-api:X.Y.Z`.
 
+## [1.1.0] – 2026-11-20
+
+### Ajouté
+- **Rapport métier** (`reports/rapport_metier.pdf`) : résultats, variables clés, recommandations agronomiques, du rendement au profit, captures MLflow, application et CI/CD. Sources dans `docs/rapport/` ; figures recalculées depuis le modèle et les données ; PDF imprimé par Chrome en mode sans affichage.
+- **Garde-fou git flow** : le job CI « Branche cible » refuse toute *pull request* vers `main` qui ne vient pas d'une branche `release/…` ou `hotfix/…`.
+
+### Modifié
+- **Interface** : nombres affichés au format français (« 1,42 t/ha »).
+- **GitHub Actions** : passage aux versions majeures fonctionnant sous Node 24 (`checkout` v7, `setup-python` v7, `upload-artifact` v7, `setup-buildx-action` v4, `login-action` v4, `metadata-action` v6, `build-push-action` v7), sans changement des paramètres utilisés.
+
 ## [1.0.1] – 2026-11-20
 
 ### Corrigé
@@ -26,5 +36,6 @@ Première version déployée.
 - **Interface Streamlit** : prédiction pour une culture et classement des 10 cultures (graphique + tableau) ; curseurs bornés au domaine appris ; niveau d'intensification agricole.
 - **CI/CD et MLOps** : `ci.yml` (qualité, tests, images Docker), `cd.yml` (Docker Hub puis Render), `train.yml` (pipeline prétraitement -> entraînement -> évaluation -> garde-fou, suivi MLflow sur Neon).
 
+[1.1.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/maximebarbier01/agritech-crop-reco/releases/tag/v1.0.0

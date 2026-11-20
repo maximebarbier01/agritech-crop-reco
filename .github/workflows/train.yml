@@ -35,12 +35,12 @@ jobs:
       POETRY_VIRTUALENVS_CREATE: "true"   # même raison que ci.yml (pas de conda en CI)
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Installer Poetry
         run: pipx install "poetry==${POETRY_VERSION}"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         id: python
         with:
           python-version: "3.11"
@@ -69,7 +69,7 @@ jobs:
 
       - name: Joindre le modèle candidat et la sélection au run
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: candidate-model-${{ github.sha }}
           path: |
