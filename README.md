@@ -7,7 +7,7 @@ Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker) interrogée par une interface **Streamlit** (aucune logique ML). Expériences suivies avec **MLflow**.
 
-> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**. Prochaine : **3 – API FastAPI**.
+> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**, **3 – API**. Prochaine : **4 – interface Streamlit**.
 
 ## Étape 1 – données (notebooks)
 
@@ -36,7 +36,7 @@ notebooks/              EDA, fusion, ACP, modélisation
 configs/default.toml    seed, chemins, expérience MLflow
 data/raw/               données sources (non versionnées, empreintes dans SHA256SUMS)
 data/processed/         dataset consolidé (versionné)
-models/                 modèle entraîné (.joblib)
+models/                 modèle servi par l'API (.joblib + fiche + gains pratiques, versionnés)
 reports/                figures et captures MLflow pour le rapport métier
 docs/                   documentation (dont le pipeline CI/CD)
 tests/                  tests pytest
@@ -59,6 +59,32 @@ Résultats sur les pays de test : RMSE 4,67 t/ha (référence 5,79), R² 0,70, c
 python -m agritech_crop_reco.modeling.split    # une seule fois : fige les pays de test (déjà fait)
 python -m agritech_crop_reco.modeling.train    # sélection + optimisation -> models/yield_model.joblib
 mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+
+## Étape 3 – API FastAPI
+
+| Endpoint | Entrée | Sortie |
+|---|---|---|
+| `GET /health` | – | état du service et version du modèle |
+| `POST /predict` | culture + conditions de la parcelle | rendement prédit (t/ha) |
+| `POST /recommend` | conditions de la parcelle | les 10 cultures classées par rendement décroissant |
+
+Conditions : `avg_temp_c`, `rainfall_mm`, `pesticides_tonnes` (obligatoires), `fertilizer_used`, `irrigation_used` (facultatifs, `null` = pratiques moyennes).
+
+- **Rendement prédit** = rendement du modèle × facteur pratiques `(1 + g_E·E + g_I·I) / (1 + 0,5·g_E + 0,5·g_I)` : une parcelle aux pratiques moyennes garde la prédiction du modèle ; engrais + irrigation ≈ +29 %, aucune des deux ≈ −29 %.
+- **Validation** : valeur physiquement impossible -> erreur 422 ; valeur plausible mais hors de la plage d'entraînement -> réponse 200 avec un avertissement (`warnings`).
+- **Modèle servi** : `models/` (versionné, < 1 Mo) : `yield_model.joblib`, `model_card.json`, `practice_gains.json`.
+
+```bash
+uvicorn api.main:app --reload                                   # local -> http://127.0.0.1:8000/docs
+docker build -f api/Dockerfile -t agritech-crop-api .           # depuis la racine du dépôt
+docker run --rm -p 8000:8000 agritech-crop-api
+```
+
+`api/requirements.txt` est exporté de `poetry.lock` (mêmes versions qu'à l'entraînement) :
+
+```bash
+poetry export --only main,api --without-hashes -f requirements.txt -o api/requirements.txt
 ```
 
 ## Installation (WSL2, conda + Poetry)

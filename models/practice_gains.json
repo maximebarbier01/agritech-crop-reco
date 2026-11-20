@@ -1,0 +1,52 @@
+{
+  "Cassava": {
+    "fertilizer_gain": 0.4529324574628786,
+    "irrigation_gain": 0.3620652885658528,
+    "gain_source": "global"
+  },
+  "Maize": {
+    "fertilizer_gain": 0.4513339420139949,
+    "irrigation_gain": 0.363988572528986,
+    "gain_source": "crop"
+  },
+  "Plantains and others": {
+    "fertilizer_gain": 0.4529324574628786,
+    "irrigation_gain": 0.3620652885658528,
+    "gain_source": "global"
+  },
+  "Potatoes": {
+    "fertilizer_gain": 0.4529324574628786,
+    "irrigation_gain": 0.3620652885658528,
+    "gain_source": "global"
+  },
+  "Rice": {
+    "fertilizer_gain": 0.452982348572378,
+    "irrigation_gain": 0.3634995881339891,
+    "gain_source": "crop"
+  },
+  "Sorghum": {
+    "fertilizer_gain": 0.4529324574628786,
+    "irrigation_gain": 0.3620652885658528,
+    "gain_source": "global"
+  },
+  "Soybean": {
+    "fertilizer_gain": 0.4516870786310714,
+    "irrigation_gain": 0.3649749842601483,
+    "gain_source": "crop"
+  },
+  "Sweet potatoes": {
+    "fertilizer_gain": 0.4529324574628786,
+    "irrigation_gain": 0.3620652885658528,
+    "gain_source": "global"
+  },
+  "Wheat": {
+    "fertilizer_gain": 0.4520910673620115,
+    "irrigation_gain": 0.3576637578783275,
+    "gain_source": "crop"
+  },
+  "Yams": {
+    "fertilizer_gain": 0.4529324574628786,
+    "irrigation_gain": 0.3620652885658528,
+    "gain_source": "global"
+  }
+}

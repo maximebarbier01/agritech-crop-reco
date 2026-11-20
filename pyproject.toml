@@ -55,6 +55,7 @@ nbformat = "^5.11.1"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # rend le dossier api/ importable (comme `uvicorn api.main:app`)
 
 [tool.coverage.run]
 source = ["src/agritech_crop_reco", "api"]

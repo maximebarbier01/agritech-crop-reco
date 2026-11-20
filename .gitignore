@@ -28,9 +28,12 @@ mlflow.db-*
 mlruns/
 mlartifacts/
 
-# Modèles (décision de versionnement à l'étape 3)
+# Modèle servi par l'API : versionné (< 1 Mo) pour que l'image Docker se construise sans secret
 models/*
 !models/.gitkeep
+!models/yield_model.joblib
+!models/model_card.json
+!models/practice_gains.json
 
 # Notebooks
 .ipynb_checkpoints/
