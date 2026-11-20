@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -115,6 +116,23 @@ class MetadataResponse(BaseModel):
     )
     pesticide_levels: list[PesticideLevel]
     model_version: str
+
+
+class MonitoringSummary(BaseModel):
+    """Synthèse des prédictions servies (fenêtre : les 10 000 derniers appels)."""
+
+    total_calls: int = Field(description="Nombre total d'appels enregistrés")
+    window: int = Field(description="Nombre d'appels récents pris en compte ci-dessous")
+    first_call: datetime | None = None
+    last_call: datetime | None = None
+    calls_by_endpoint: dict[str, int] = {}
+    latency_ms_median: float | None = None
+    latency_ms_p95: float | None = None
+    share_with_warnings: float | None = Field(
+        default=None, description="Part des appels hors du domaine d'entraînement"
+    )
+    top_requested_crops: dict[str, int] = {}
+    top_recommended_crops: dict[str, int] = {}
 
 
 class HealthResponse(BaseModel):

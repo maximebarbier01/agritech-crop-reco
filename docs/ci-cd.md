@@ -88,6 +88,7 @@ Sans `RENDER_DEPLOY_HOOK_URL` ou `API_PUBLIC_URL`, l'image est publiée et l'ét
 
 **Render** : *New -> Web Service -> Existing image* `docker.io/<utilisateur>/agritech-crop-api:latest`, offre gratuite. Render fournit `PORT`, que le Dockerfile utilise. Le service se met en veille après inactivité : la première requête prend 30 à 60 s.
 
+- Variable d'environnement du service : **`PREDICTION_DB_URL`** = URL **directe** de la base Neon `agritech_api` (enregistrement des prédictions ; sans elle, l'API fonctionne sans enregistrer). Synthèse : `GET /monitoring/summary`.
 - Choisir **Existing Image**, pas le dépôt GitHub : sinon Render reconstruit le projet avec son Python par défaut (3.14) au lieu d'utiliser l'image testée par la CI.
 - Les sous-domaines `onrender.com` sont **partagés entre tous les utilisateurs** : si le nom est déjà pris, Render ajoute un suffixe (ici `agritech-crop-api-latest`). Toujours copier l'URL affichée par Render ; `https://agritech-crop-api.onrender.com` appartient à un autre service. Le front le détecte : si `/health` ne répond pas comme l'API Agritech, il affiche « L'adresse configurée ne correspond pas à l'API Agritech ».
 

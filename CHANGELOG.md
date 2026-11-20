@@ -3,6 +3,16 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions [SemVer](https://semver.org/lang/fr/).
 Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbier01/agritech-crop-api:X.Y.Z`.
 
+## [1.2.0] – 2026-11-20
+
+### Ajouté
+- **Suivi des prédictions en production** : chaque appel à `/predict` et `/recommend` est enregistré dans une base dédiée (Neon `agritech_api`, table `predictions`) si `PREDICTION_DB_URL` est définie : conditions, culture, rendement prédit, classement, avertissements, versions du modèle et de l'API, temps de réponse. Aucune donnée personnelle. Écriture après la réponse ; une panne de base est journalisée sans faire échouer la prédiction ; sans variable, l'enregistrement est désactivé (CI, docker compose).
+- **`GET /monitoring/summary`** : synthèse agrégée (volume par endpoint, temps de réponse médian et 95ᵉ centile, part hors domaine d'entraînement, cultures les plus demandées et recommandées).
+
+### Corrigé
+- Le journal de l'API (`agritech.api`) n'était pas configuré : ses messages d'information étaient perdus. Chaque prédiction y est désormais tracée sur une ligne JSON.
+- Les tests n'utilisent plus le fichier `.env` local (évite d'écrire dans une base de production pendant les tests).
+
 ## [1.1.0] – 2026-11-20
 
 ### Ajouté
@@ -36,6 +46,7 @@ Première version déployée.
 - **Interface Streamlit** : prédiction pour une culture et classement des 10 cultures (graphique + tableau) ; curseurs bornés au domaine appris ; niveau d'intensification agricole.
 - **CI/CD et MLOps** : `ci.yml` (qualité, tests, images Docker), `cd.yml` (Docker Hub puis Render), `train.yml` (pipeline prétraitement -> entraînement -> évaluation -> garde-fou, suivi MLflow sur Neon).
 
+[1.2.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/maximebarbier01/agritech-crop-reco/releases/tag/v1.0.0
