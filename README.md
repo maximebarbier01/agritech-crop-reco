@@ -133,6 +133,17 @@ docker run -d --name front --network agri -p 8501:8501 agritech-crop-front   # -
 poetry export --only front --without-hashes -f requirements.txt -o frontend/requirements.txt
 ```
 
+## Étape 6 – rapport métier
+
+[`reports/rapport_metier.pdf`](reports/rapport_metier.pdf) : résultats, variables clés et recommandations, pour un public non technique. Source : `docs/rapport/` (HTML + CSS) ; les figures sont recalculées depuis le modèle et les données, le PDF est imprimé par Chrome en mode sans affichage :
+
+```bash
+python docs/rapport/make_figures.py   # reports/figures/rapport_*.png
+python docs/rapport/build_pdf.py      # reports/rapport_metier.pdf (+ liste des captures manquantes)
+```
+
+Captures d'écran attendues : `reports/mlflow/`, `reports/app/`, `reports/cicd/`.
+
 ## Installation (WSL2, conda + Poetry)
 
 ```bash
