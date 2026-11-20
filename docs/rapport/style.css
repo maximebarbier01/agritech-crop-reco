@@ -15,7 +15,7 @@
   size: A4;
   margin: 18mm 18mm 20mm 18mm;
   @bottom-left {
-    content: "Agritech Answers · Rapport métier · v1.0.1";
+    content: "Agritech Answers · Rapport métier · v1.1.0";
     font: 8pt "Segoe UI", system-ui, sans-serif;
     color: #898781;
   }

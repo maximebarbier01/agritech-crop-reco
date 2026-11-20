@@ -124,7 +124,7 @@ def test_app_predict_flow(monkeypatch):
     at = run_app(monkeypatch)
     assert not at.exception
     at.button[0].click().run()
-    assert at.metric[0].value == "2.50 t/ha"
+    assert at.metric[0].value == "2,50 t/ha"
     assert "plage d'entraînement" in at.warning[0].value
 
 

@@ -36,6 +36,7 @@ flowchart LR
 
 | Job | Contenu | Dépend de |
 |---|---|---|
+| `branch-guard` (« Branche cible ») | sur les PR uniquement : refuse une PR vers `main` qui ne vient pas d'une branche `release/…` ou `hotfix/…` (git flow) | – |
 | `quality` | venv Poetry sur Python 3.11, `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
 | `docker` | `docker compose up --build --wait` (API + front), puis appels `/health`, `/predict`, `/recommend` et liaison front -> API | `quality` |
 
@@ -100,7 +101,7 @@ Les secrets de premier niveau sont exposés comme variables d'environnement : `a
 
 ## Protection de `main`
 
-Ruleset GitHub « CI main » (*Settings -> Rules -> Rulesets*), actif sur `main` : passage obligatoire par une *pull request*, contrôles **« Qualité (ruff, black, pytest) »** et **« Images Docker (API et front) »** au vert, suppression et réécriture d'historique interdites. Aucun outil (ex. Streamlit Cloud, qui propose d'ajouter un dossier `.devcontainer`) ne peut plus pousser directement sur `main`.
+Ruleset GitHub « CI main » (*Settings -> Rules -> Rulesets*), actif sur `main` : passage obligatoire par une *pull request*, contrôles **« Branche cible »**, **« Qualité (ruff, black, pytest) »** et **« Images Docker (API et front) »** au vert, suppression et réécriture d'historique interdites. Aucun outil (ex. Streamlit Cloud, qui propose d'ajouter un dossier `.devcontainer`) ne peut plus pousser directement sur `main`.
 
 Ne pas exiger « CI / Qualité … » : c'est le nom du job quand **cd.yml** l'appelle, après le merge ; il n'est jamais rapporté sur une PR et la bloquerait indéfiniment.
 
