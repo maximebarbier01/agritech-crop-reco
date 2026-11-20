@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop]   # branche d'intégration (après chaque merge de PR)
+  workflow_call:          # réutilisé par cd.yml : tests -> build -> déploiement sur main
+
+# Une seule exécution par branche : une nouvelle poussée annule la précédente.
+# (github.workflow = "CD" quand ce fichier est appelé par cd.yml : pas de conflit de groupe)
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  POETRY_VERSION: "2.3.4"
+
+jobs:
+  quality:
+    name: Qualité (ruff, black, pytest)
+    runs-on: ubuntu-latest
+    env:
+      # En local, poetry.toml (create = false) installe dans l'env conda actif.
+      # En CI, il n'y a pas de conda : sans cette surcharge, Poetry (installé par pipx sur
+      # le Python système 3.14 du runner) installerait dans ce Python système et échouerait
+      # sur les paquets Debian. On force donc un venv isolé, basé sur le Python 3.11 ci-dessous.
+      POETRY_VIRTUALENVS_CREATE: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Poetry
+        run: pipx install "poetry==${POETRY_VERSION}"
+
+      - uses: actions/setup-python@v5
+        id: python
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Installer les dépendances (venv Python 3.11)
+        run: |
+          poetry env use "${{ steps.python.outputs.python-path }}"
+          poetry check --lock
+          poetry install --with ml,api,front,dev
+          poetry run python --version
+
+      - name: ruff
+        run: poetry run ruff check .
+
+      - name: black
+        run: poetry run black --check .
+
+      # data/processed (versionné) et models/ (versionné) suffisent : pas de données brutes.
+      - name: Tests
+        run: poetry run pytest --cov --cov-report=term-missing
+
+  docker:
+    name: Images Docker (API et front)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      # Même commande qu'en local : construit les deux images, démarre l'API puis le front
+      # (le front attend le HEALTHCHECK de l'API) et patiente jusqu'à ce que tout soit « healthy ».
+      - name: Construire et démarrer l'application
+        run: docker compose up -d --build --wait --wait-timeout 120
+
+      - name: Vérifier l'API
+        run: |
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS -X POST http://127.0.0.1:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"crop":"Wheat","avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":12000}'
+          curl -fsS -X POST http://127.0.0.1:8000/recommend \
+            -H "Content-Type: application/json" \
+            -d '{"avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":12000}'
+
+      - name: Vérifier le front et sa liaison avec l'API
+        run: |
+          curl -fsS http://127.0.0.1:8501/_stcore/health
+          # Le front voit l'API par son nom de service (API_URL=http://api:8000)
+          docker compose exec -T front python -c "import api_client; print(api_client.health())"
+
+      - name: Logs des conteneurs (en cas d'échec)
+        if: failure()
+        run: docker compose logs
+
+      - name: Arrêter l'application
+        if: always()
+        run: docker compose down
