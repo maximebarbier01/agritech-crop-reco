@@ -1,5 +1,9 @@
 # agritech-crop-reco
 
+[![CI](https://github.com/maximebarbier01/agritech-crop-reco/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/maximebarbier01/agritech-crop-reco/actions/workflows/ci.yml)
+[![CD](https://github.com/maximebarbier01/agritech-crop-reco/actions/workflows/cd.yml/badge.svg?branch=main)](https://github.com/maximebarbier01/agritech-crop-reco/actions/workflows/cd.yml)
+[![Train](https://github.com/maximebarbier01/agritech-crop-reco/actions/workflows/train.yml/badge.svg?branch=main)](https://github.com/maximebarbier01/agritech-crop-reco/actions/workflows/train.yml)
+
 Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 - **Prédiction** : une culture + les conditions de la parcelle → rendement estimé (t/ha).
@@ -7,7 +11,9 @@ Prototype **Agritech Answers** : aider un agriculteur à décider quoi cultiver.
 
 Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker) interrogée par une interface **Streamlit** (aucune logique ML). Expériences suivies avec **MLflow**.
 
-> Projet en cours. Étapes terminées : **1 – données**, **2 – modèle + MLflow**, **3 – API**, **CI** (GitHub Actions), **4 – interface Streamlit**. Prochaine : déploiement (CD).
+> Étapes : **1 – données**, **2 – modèle + MLflow**, **3 – API**, **4 – interface Streamlit**, **5 – CI/CD + pipeline MLOps**.
+>
+> En ligne : API `https://<à compléter>.onrender.com/docs` · application `https://<à compléter>.streamlit.app` (première requête lente : réveil de l'offre gratuite).
 
 ## Étape 1 – données
 
@@ -39,7 +45,7 @@ data/processed/         dataset consolidé (versionné)
 models/                 modèle servi par l'API (.joblib + fiche + gains pratiques, versionnés)
 reports/                figures et captures MLflow pour le rapport métier
 docs/                   documentation (pipeline CI/CD : docs/ci-cd.md)
-.github/workflows/      CI GitHub Actions (ci.yml)
+.github/workflows/      GitHub Actions : ci.yml, cd.yml, train.yml
 tests/                  tests pytest
 ```
 
@@ -160,7 +166,7 @@ Une seule variable choisit la base de suivi, `MLFLOW_TRACKING_URI` (voir `.env.e
 | Local (défaut) | vide | `mlflow.db` (SQLite) | dossier local |
 | Distant (Neon) | `MLFLOW_TRACKING_URI` dans `.env` ou secret GitHub | PostgreSQL **Neon** | non conservés (le modèle de référence est entraîné en local) |
 
-La CI actuelle ne l'utilise pas : les tests n'écrivent pas dans MLflow.
+Le workflow `train.yml` l'utilise (secret GitHub) : ses runs portent le tag `source=ci`. Les tests, eux, n'écrivent pas dans MLflow.
 
 ## Qualité et CI
 
@@ -170,4 +176,17 @@ ruff check .
 black --check .
 ```
 
-À chaque *pull request* et à chaque poussée sur `main`, GitHub Actions rejoue ces trois contrôles, puis construit l'image Docker de l'API et vérifie qu'elle répond (`/health`, `/predict`, `/recommend`). Détails : [`docs/ci-cd.md`](docs/ci-cd.md).
+| Workflow | Quand | Quoi |
+|---|---|---|
+| `ci.yml` | chaque PR, chaque poussée sur `develop` | ces trois contrôles, puis les images Docker (API + front) démarrées et testées |
+| `cd.yml` | poussée sur `main`, tag `vX.Y.Z` | CI complète -> image de l'API sur Docker Hub -> déploiement Render -> test de l'API en ligne |
+| `train.yml` | manuel, ou `main` si données / modèle modifiés | pipeline MLOps -> MLflow (Neon) -> garde-fou de performance |
+
+Pipeline MLOps (prétraitement -> entraînement -> évaluation -> garde-fou), aussi en local :
+
+```bash
+python -m agritech_crop_reco.pipeline --from-raw    # reconstruit le dataset depuis data/raw et vérifie qu'il est identique
+python -m agritech_crop_reco.pipeline --output-dir models   # remplace volontairement le modèle servi
+```
+
+Schéma, secrets à configurer, notifications : [`docs/ci-cd.md`](docs/ci-cd.md).

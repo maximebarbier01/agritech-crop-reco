@@ -22,6 +22,9 @@ data/processed/*
 # Livrable de l'étape 1 (1,2 Mo) : source de vérité de l'entraînement, utilisé par la CI
 !data/processed/crop_yield_consolidated.csv
 
+# Sorties du pipeline (modèle candidat, jamais servi sans relecture)
+artifacts/
+
 # MLflow local
 mlflow.db
 mlflow.db-*

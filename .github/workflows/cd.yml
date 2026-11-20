@@ -1,0 +1,126 @@
+name: CD
+
+# Déploiement continu : tests -> images -> publication Docker Hub -> déploiement Render.
+# Déclenché sur `main` (versions validées) et sur les tags vX.Y.Z.
+# Le front Streamlit est déployé par Streamlit Community Cloud, qui suit `main` tout seul.
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+# Jamais deux déploiements en parallèle ; on n'annule pas un déploiement en cours.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: agritech-crop-api
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publier l'image de l'API (Docker Hub)
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier la configuration Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "::error::Variable DOCKERHUB_USERNAME ou secret DOCKERHUB_TOKEN manquant (voir docs/ci-cd.md)"
+            exit 1
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Tags : latest (main), sha-xxxxxxx (toujours), X.Y.Z (si le commit est tagué vX.Y.Z)
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=short
+            type=semver,pattern={{version}}
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Résumé
+        run: |
+          {
+            echo "## Image publiée"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+            echo "Digest : \`${{ steps.build.outputs.digest }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Déployer l'API (Render)
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.API_PUBLIC_URL }}
+    steps:
+      # Le service Render est configuré sur l'image docker.io/<utilisateur>/agritech-crop-api:latest ;
+      # le "deploy hook" lui demande de la retélécharger et de redémarrer.
+      - name: Déclencher le déploiement
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::Secret RENDER_DEPLOY_HOOK_URL absent : image publiée mais pas déployée"
+            exit 0
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+          echo "Déploiement demandé à Render."
+
+      # Test de fumée sur l'API en ligne. Render met 1 à 3 min à redéployer (et l'offre gratuite
+      # « réveille » le service à la première requête) : on attend puis on réessaie jusqu'à 10 min.
+      - name: Vérifier l'API en ligne
+        env:
+          API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
+        run: |
+          if [ -z "$API_PUBLIC_URL" ]; then
+            echo "::warning::Variable API_PUBLIC_URL absente : vérification en ligne ignorée"
+            exit 0
+          fi
+          sleep 60
+          for i in $(seq 1 27); do
+            if curl -fsS --max-time 60 "$API_PUBLIC_URL/health"; then break; fi
+            echo "API pas encore prête (essai $i), nouvel essai dans 20 s"
+            sleep 20
+          done
+          curl -fsS --max-time 60 "$API_PUBLIC_URL/health"
+          curl -fsS --max-time 60 -X POST "$API_PUBLIC_URL/recommend" \
+            -H "Content-Type: application/json" \
+            -d '{"avg_temp_c":18.5,"rainfall_mm":900,"pesticides_tonnes":2539}' > /dev/null
+          echo "## API en ligne : $API_PUBLIC_URL/docs" >> "$GITHUB_STEP_SUMMARY"
