@@ -52,6 +52,14 @@ N_FOLDS = 5
 N_ITER_SEARCH = 30
 SKOPS_TRUSTED_TYPES = ["sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"]
 N_PROBE = 300  # parcelles fictives pour mesurer si le classement des cultures varie
+# Niveaux d'intensification affichés dans l'interface (quantiles des pesticides à l'entraînement)
+PESTICIDE_LEVELS = {
+    "Très faible": 0.1,
+    "Faible": 0.3,
+    "Moyen": 0.5,
+    "Élevé": 0.7,
+    "Très élevé": 0.9,
+}
 REPORTS_DIR = PROJECT_ROOT / "reports"
 SELECTION_FILE = REPORTS_DIR / "selection_results.csv"
 
@@ -237,6 +245,22 @@ def select_config(results: pd.DataFrame) -> int:
 # --------------------------------------------------------------------------- étape 2
 
 
+def pesticide_levels(train: pd.DataFrame) -> list[dict]:
+    """Valeurs de pesticides (tonnes) correspondant à chaque niveau d'intensification.
+
+    Un agriculteur ne connaît pas le tonnage national : l'interface propose 5 niveaux,
+    traduits en tonnes par les quantiles observés sur les pays d'entraînement.
+    """
+    return [
+        {
+            "label": label,
+            "quantile": q,
+            "pesticides_tonnes": round(float(train["pesticides_tonnes"].quantile(q)), 1),
+        }
+        for label, q in PESTICIDE_LEVELS.items()
+    ]
+
+
 def write_practice_gains(settings: Settings) -> Path:
     """Exporte les gains engrais / irrigation par culture (issus du dataset consolidé)
     à côté du modèle : l'API n'a ainsi besoin d'aucun fichier de données."""
@@ -359,6 +383,7 @@ def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
                 if col != "crop"
             },
             "crops": sorted(train["crop"].unique()),
+            "pesticide_levels": pesticide_levels(train),
         }
         settings.models_dir.mkdir(parents=True, exist_ok=True)
         joblib.dump(search.best_estimator_, settings.models_dir / MODEL_FILE)

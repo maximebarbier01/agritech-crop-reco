@@ -58,7 +58,7 @@ testpaths = ["tests"]
 pythonpath = [".", "frontend"]  # api/ importable (comme `uvicorn api.main:app`) ; frontend/ comme `streamlit run frontend/app.py`
 
 [tool.coverage.run]
-source = ["src/agritech_crop_reco", "api"]
+source = ["src/agritech_crop_reco", "api", "frontend"]
 
 [tool.ruff]
 line-length = 100

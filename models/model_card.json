@@ -60,5 +60,32 @@
     "Sweet potatoes",
     "Wheat",
     "Yams"
+  ],
+  "pesticide_levels": [
+    {
+      "label": "Très faible",
+      "quantile": 0.1,
+      "pesticides_tonnes": 40.0
+    },
+    {
+      "label": "Faible",
+      "quantile": 0.3,
+      "pesticides_tonnes": 502.6
+    },
+    {
+      "label": "Moyen",
+      "quantile": 0.5,
+      "pesticides_tonnes": 2539.2
+    },
+    {
+      "label": "Élevé",
+      "quantile": 0.7,
+      "pesticides_tonnes": 9163.5
+    },
+    {
+      "label": "Très élevé",
+      "quantile": 0.9,
+      "pesticides_tonnes": 50891.9
+    }
   ]
 }

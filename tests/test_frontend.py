@@ -12,6 +12,25 @@ from streamlit.testing.v1 import AppTest
 APP = str(Path(__file__).resolve().parents[1] / "frontend" / "app.py")
 CONDITIONS = api_client.conditions_payload(18.5, 900, 12_000, None, None)
 HEALTH = {"status": "ok", "model_version": "test@abc", "n_crops": 10}
+METADATA = {
+    "crops": list(api_client.CROP_LABELS),
+    "training_ranges": {
+        "avg_temp_c": [1.3, 30.42],
+        "rainfall_mm": [51.0, 3240.0],
+        "pesticides_tonnes": [0.04, 367778.0],
+    },
+    "pesticide_levels": [
+        {"label": lbl, "quantile": q, "pesticides_tonnes": t}
+        for lbl, q, t in [
+            ("Très faible", 0.1, 40.0),
+            ("Faible", 0.3, 502.6),
+            ("Moyen", 0.5, 2539.2),
+            ("Élevé", 0.7, 9163.5),
+            ("Très élevé", 0.9, 50891.9),
+        ]
+    ],
+    "model_version": "test@abc",
+}
 PREDICTION = {
     "crop": "Wheat",
     "yield_t_ha": 2.5,
@@ -87,12 +106,15 @@ def test_server_error_is_reported(monkeypatch):
         api_client.health()
 
 
-def test_crop_labels_cover_the_ten_api_crops():
-    assert len(api_client.CROP_LABELS) == 10
+def test_crop_labels_match_api_crops():
+    from api.schemas import Crop
+
+    assert set(api_client.CROP_LABELS) == {c.value for c in Crop}
 
 
 def run_app(monkeypatch, **api):
     monkeypatch.setattr(api_client, "health", api.get("health", lambda: HEALTH))
+    monkeypatch.setattr(api_client, "metadata", api.get("metadata", lambda: METADATA))
     monkeypatch.setattr(api_client, "predict", api.get("predict", lambda c, p: PREDICTION))
     monkeypatch.setattr(api_client, "recommend", api.get("recommend", lambda p: RANKING))
     return AppTest.from_file(APP, default_timeout=30).run()
@@ -106,10 +128,45 @@ def test_app_predict_flow(monkeypatch):
     assert "plage d'entraînement" in at.warning[0].value
 
 
-def test_app_recommend_flow(monkeypatch):
+def test_app_recommend_flow_shows_chart_and_table(monkeypatch):
     at = run_app(monkeypatch)
     at.button[1].click().run()
+    assert not at.exception
     assert "Pommes de terre" in at.success[0].value
+    assert len(at.get("plotly_chart")) == 1
+    table = at.dataframe[0].value
+    assert list(table["Culture"]) == ["Pommes de terre", "Blé"]
+    assert list(table["Rang"]) == [1, 2]
+
+
+def test_inputs_are_sliders_bounded_by_training_ranges(monkeypatch):
+    at = run_app(monkeypatch)
+    temp, rain = at.slider
+    assert (temp.min, temp.max) == (1.0, 30.5)  # [1.3 ; 30.42] arrondi au pas de 0,5
+    assert rain.min == 50.0 and rain.max == 3240.0
+    assert at.select_slider[0].value == "Moyen"
+
+
+def test_intensity_level_is_sent_as_tonnes(monkeypatch):
+    sent = {}
+
+    def fake_predict(crop, conditions):
+        sent.update(conditions)
+        return PREDICTION
+
+    at = run_app(monkeypatch, predict=fake_predict)
+    at.select_slider[0].set_value("Très élevé").run()
+    at.button[0].click().run()
+    assert sent["pesticides_tonnes"] == 50891.9
+
+
+def test_result_flagged_as_stale_when_inputs_change(monkeypatch):
+    at = run_app(monkeypatch)
+    at.button[0].click().run()
+    assert at.metric
+    at.slider[0].set_value(25.0).run()
+    assert not at.metric
+    assert "relancez" in at.info[0].value
 
 
 def test_app_shows_error_when_api_is_down(monkeypatch):

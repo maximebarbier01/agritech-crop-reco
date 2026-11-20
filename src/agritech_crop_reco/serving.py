@@ -65,6 +65,10 @@ class YieldService:
     def training_ranges(self) -> dict[str, list[float]]:
         return self.card["training_ranges"]
 
+    @property
+    def pesticide_levels(self) -> list[dict]:
+        return self.card["pesticide_levels"]
+
     def practice_factor(self, crop: str, fertilizer: bool | None, irrigation: bool | None) -> float:
         g_e = self.gains[crop]["fertilizer_gain"]
         g_i = self.gains[crop]["irrigation_gain"]
