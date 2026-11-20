@@ -13,7 +13,7 @@ Architecture découplée : une API **FastAPI** (modèle de ML, conteneur Docker)
 
 > Étapes : **1 – données**, **2 – modèle + MLflow**, **3 – API**, **4 – interface Streamlit**, **5 – CI/CD + pipeline MLOps**.
 >
-> En ligne : API `https://<à compléter>.onrender.com/docs` · application `https://<à compléter>.streamlit.app` (première requête lente : réveil de l'offre gratuite).
+> En ligne : API https://agritech-crop-api-latest.onrender.com/docs · application https://agritech-crop-reco.streamlit.app (première requête lente : réveil de l'offre gratuite de Render, jusqu'à une minute).
 
 ## Étape 1 – données
 

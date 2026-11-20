@@ -176,3 +176,17 @@ def test_app_shows_error_when_api_is_down(monkeypatch):
     at = run_app(monkeypatch, health=down)
     assert at.error[0].value == "API injoignable"
     assert not at.button
+
+
+def test_foreign_api_is_reported_clearly(monkeypatch):
+    # Cas réel : un autre service répondait à l'URL configurée (sous-domaine Render déjà pris)
+    foreign = {"status": "ok", "model_loaded": True}
+    monkeypatch.setattr(requests, "request", fake_request(FakeResponse(payload=foreign)))
+    with pytest.raises(api_client.ApiError, match="ne correspond pas à l'API Agritech"):
+        api_client.health()
+
+
+def test_metadata_with_missing_fields_is_reported(monkeypatch):
+    monkeypatch.setattr(requests, "request", fake_request(FakeResponse(payload={"crops": []})))
+    with pytest.raises(api_client.ApiError, match="pesticide_levels"):
+        api_client.metadata()

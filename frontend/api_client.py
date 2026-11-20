@@ -72,13 +72,30 @@ def conditions_payload(
     }
 
 
+HEALTH_KEYS = {"status", "model_version", "n_crops"}
+METADATA_KEYS = {"crops", "training_ranges", "pesticide_levels"}
+
+
+def _check_keys(payload: dict, expected: set[str], path: str) -> dict:
+    """Une autre API peut répondre à la même adresse (ex. sous-domaine déjà pris sur Render) :
+    on le signale clairement plutôt que de planter plus loin sur un champ manquant."""
+    missing = expected - set(payload) if isinstance(payload, dict) else expected
+    if missing:
+        raise ApiError(
+            f"L'adresse configurée ({api_url()}) ne correspond pas à l'API Agritech : "
+            f"réponse inattendue sur {path} (champs manquants : {', '.join(sorted(missing))}). "
+            "Vérifiez la variable API_URL."
+        )
+    return payload
+
+
 def health() -> dict:
-    return _request("GET", "/health")
+    return _check_keys(_request("GET", "/health"), HEALTH_KEYS, "/health")
 
 
 def metadata() -> dict:
     """Cultures, plages d'entraînement et niveaux d'intensification (pour borner les saisies)."""
-    return _request("GET", "/metadata")
+    return _check_keys(_request("GET", "/metadata"), METADATA_KEYS, "/metadata")
 
 
 def predict(crop: str, conditions: dict) -> dict:
