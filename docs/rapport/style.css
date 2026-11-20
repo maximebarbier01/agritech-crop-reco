@@ -1,0 +1,107 @@
+/* Rapport métier Agritech Answers : mise en page A4 imprimée (Chrome headless). */
+:root {
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --rule: #e1e0d9;
+  --accent: #2a78d6;
+  --accent-dark: #104281;
+  --wash: #eef4fc;
+  --warn-wash: #fdf3e6;
+  --warn: #b85c00;
+}
+
+@page {
+  size: A4;
+  margin: 18mm 18mm 20mm 18mm;
+  @bottom-left {
+    content: "Agritech Answers · Rapport métier · v1.0.1";
+    font: 8pt "Segoe UI", system-ui, sans-serif;
+    color: #898781;
+  }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font: 8pt "Segoe UI", system-ui, sans-serif;
+    color: #898781;
+  }
+}
+@page :first {
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  font: 10.5pt/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* ---------- couverture ---------- */
+.cover {
+  height: 250mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  break-after: page;
+}
+.cover .brand { color: var(--accent); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 10pt; }
+.cover h1 { font-size: 30pt; line-height: 1.15; margin: 28mm 0 6mm; }
+.cover .subtitle { font-size: 14pt; color: var(--ink-2); max-width: 140mm; }
+.cover .meta { font-size: 10pt; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 4mm; }
+.cover .meta b { color: var(--ink); }
+
+/* ---------- titres ---------- */
+h2 {
+  font-size: 16pt;
+  color: var(--accent-dark);
+  margin: 0 0 3mm;
+  padding-bottom: 1.5mm;
+  border-bottom: 2px solid var(--accent);
+  break-after: avoid;
+}
+section { break-before: page; }
+section.flow { break-before: auto; margin-top: 8mm; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+li { margin-bottom: 1mm; }
+.lead { font-size: 11.5pt; color: var(--ink-2); }
+
+/* ---------- chiffres clés ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 4mm 0 5mm; }
+.kpi { border: 1px solid var(--rule); border-radius: 2mm; padding: 3mm; break-inside: avoid; }
+.kpi .value { font-size: 18pt; font-weight: 600; color: var(--accent-dark); line-height: 1.1; }
+.kpi .label { font-size: 8.5pt; color: var(--ink-2); margin-top: 1mm; }
+
+/* ---------- encadrés ---------- */
+.box { background: var(--wash); border-left: 3px solid var(--accent); padding: 3mm 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
+.box.warn { background: var(--warn-wash); border-left-color: var(--warn); }
+.box h4 { margin: 0 0 1.5mm; font-size: 10.5pt; }
+.box p:last-child, .box ul:last-child { margin-bottom: 0; }
+
+/* ---------- figures & tableaux ---------- */
+figure { margin: 3mm 0 4mm; break-inside: avoid; }
+figure img { width: 100%; display: block; }
+figure.narrow img { width: 82%; margin: 0 auto; }
+figure.shot img { border: 1px solid var(--rule); }
+figcaption { font-size: 8.5pt; color: var(--ink-2); margin-top: 1.5mm; }
+figcaption b { color: var(--ink); }
+.placeholder {
+  border: 1.5px dashed var(--muted); color: var(--ink-2); padding: 10mm 4mm; text-align: center;
+  font-size: 9pt; background: #f9f9f7;
+}
+table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm; font-size: 9.5pt; break-inside: avoid; }
+th, td { text-align: left; padding: 1.6mm 2mm; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; border-bottom: 1.5px solid var(--muted); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.small { font-size: 9pt; color: var(--ink-2); }
+a { color: var(--accent-dark); }
+
+/* ---------- schéma d'architecture ---------- */
+.flowchart { display: flex; align-items: stretch; gap: 2mm; margin: 3mm 0; break-inside: avoid; }
+.flowchart .step { flex: 1; border: 1px solid var(--rule); border-radius: 2mm; padding: 2.5mm; font-size: 8.5pt; background: #fff; }
+.flowchart .step b { display: block; color: var(--accent-dark); font-size: 9.5pt; margin-bottom: 1mm; }
+.flowchart .arrow { align-self: center; color: var(--muted); font-size: 14pt; }

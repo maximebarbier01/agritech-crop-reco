@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport métier – Agritech Answers</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- =============================================================== COUVERTURE -->
+<div class="cover">
+  <div>
+    <div class="brand">Agritech Answers</div>
+    <h1>Quelle culture choisir,<br>et quel rendement en attendre&nbsp;?</h1>
+    <p class="subtitle">Rapport métier : résultats, variables clés et recommandations du système de prédiction de rendement et de recommandation de cultures.</p>
+  </div>
+  <div class="meta">
+    <p><b>Destinataire :</b> Gabriel, Lead Data Scientist · <b>Auteur :</b> Maxime Barbier, Data Scientist ML junior</p>
+    <p><b>Version :</b> 1.0.1 · novembre 2026</p>
+    <p><b>Application :</b> <a href="https://agritech-crop-reco.streamlit.app">agritech-crop-reco.streamlit.app</a> · <b>API :</b> <a href="https://agritech-crop-api-latest.onrender.com/docs">agritech-crop-api-latest.onrender.com/docs</a></p>
+    <p><b>Code source :</b> <a href="https://github.com/maximebarbier01/agritech-crop-reco">github.com/maximebarbier01/agritech-crop-reco</a></p>
+  </div>
+</div>
+
+<!-- =============================================================== 1. SYNTHÈSE -->
+<section style="break-before: auto;">
+<h2>1. Synthèse</h2>
+
+<p class="lead">Nous avons construit un outil en ligne qui, à partir des conditions d'une parcelle (climat, niveau d'intensification agricole, usage d'engrais et d'irrigation), <b>estime le rendement</b> d'une culture et <b>classe les dix cultures</b> étudiées de la plus à la moins productive.</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="value">×13</div><div class="label">écart de rendement entre la culture la plus et la moins productive (pomme de terre 16,2 t/ha contre sorgho 1,2 t/ha)</div></div>
+  <div class="kpi"><div class="value">+81&nbsp;%</div><div class="label">rendement avec engrais <i>et</i> irrigation, par rapport à une parcelle sans aucun des deux</div></div>
+  <div class="kpi"><div class="value">−19&nbsp;%</div><div class="label">d'erreur de prédiction par rapport à une estimation « au bon sens » (le rendement habituel de la culture)</div></div>
+  <div class="kpi"><div class="value">2,6 t/ha</div><div class="label">écart moyen entre prédiction et réalité, mesuré sur 21 pays jamais vus par le modèle</div></div>
+</div>
+
+<h3>Ce que les données nous apprennent</h3>
+<ol>
+  <li><b>Le choix de la culture est, de loin, le premier levier.</b> Il explique à lui seul plus de la moitié des différences de rendement observées dans le monde.</li>
+  <li><b>La chaleur pénalise la plupart des cultures</b> (maïs, sorgho, pomme de terre, blé, riz), mais <b>le manioc la supporte bien</b>, voire en profite.</li>
+  <li><b>L'engrais (+45&nbsp;%) et l'irrigation (+36&nbsp;%) augmentent fortement le rendement</b>, et leurs effets s'additionnent.</li>
+  <li><b>Les régions à agriculture intensive</b> (usage élevé d'intrants) obtiennent des rendements 2 à 5 fois supérieurs, signe de l'effet global de la modernisation.</li>
+</ol>
+
+<h3>Nos recommandations</h3>
+<ul>
+  <li><b>Aux agriculteurs :</b> choisir d'abord une culture adaptée à son climat (cultures tolérantes à la chaleur en région chaude), puis investir en priorité dans la fertilisation et l'irrigation.</li>
+  <li><b>À Agritech Answers :</b> utiliser l'outil pour comparer des cultures et estimer des ordres de grandeur, et l'enrichir rapidement avec <b>les prix de vente et les coûts</b> par culture : sans eux, l'outil classe les cultures en <b>tonnes</b>, pas encore en <b>profit</b>.</li>
+</ul>
+
+<div class="box warn">
+  <h4>À garder en tête</h4>
+  <p>Les données disponibles décrivent des <b>pays</b> (moyennes nationales annuelles), pas des parcelles : les prédictions sont des <b>ordres de grandeur</b>, avec une marge d'erreur de 25 à 60&nbsp;% selon la culture (partie 4).</p>
+</div>
+</section>
+
+<!-- =============================================================== 2. DONNÉES -->
+<section>
+<h2>2. Les données : deux sources complémentaires</h2>
+
+<p>Deux jeux de données nous ont été fournis. Aucun ne suffit seul : nous les avons combinés pour tirer parti de ce que chacun apporte.</p>
+
+<table>
+  <tr><th></th><th>Rendements mondiaux (FAO / Banque mondiale)</th><th>Parcelles simulées (Kaggle)</th></tr>
+  <tr><td><b>Contenu</b></td><td>Rendement réel par <b>pays × culture × année</b>, avec pluie, température et pesticides du pays</td><td>1 million de parcelles <b>simulées</b> : pluie, température, sol, <b>engrais</b>, <b>irrigation</b>, rendement</td></tr>
+  <tr><td><b>Couverture</b></td><td>101 pays, 1990–2013, 10 cultures</td><td>6 cultures, régions génériques (Nord, Sud…), sans pays ni année</td></tr>
+  <tr><td><b>Ce qu'il apporte</b></td><td>Les <b>différences entre cultures</b> : indispensable pour recommander</td><td>L'<b>effet de l'engrais et de l'irrigation</b>, absents des données mondiales</td></tr>
+  <tr><td><b>Sa limite</b></td><td>Des moyennes nationales, pas des mesures de parcelle</td><td>Données artificielles : la culture n'y a <b>aucun effet</b> sur le rendement</td></tr>
+</table>
+
+<h3>Comment nous les avons combinés</h3>
+<p>Les deux jeux n'ont en commun ni pays ni année : la seule passerelle est la <b>culture</b>. Le moteur de prédiction apprend donc sur les <b>données mondiales réelles</b> (ce qui permet de départager les cultures), puis sa prédiction est <b>ajustée</b> selon l'usage d'engrais et d'irrigation, dont l'effet a été mesuré sur les parcelles simulées. Cet effet étant identique pour toutes les cultures simulées, nous l'appliquons aussi aux cultures absentes de ce jeu.</p>
+
+<h3>Ce que le nettoyage a corrigé</h3>
+<ul>
+  <li><b>Des doublons massifs :</b> le fichier mondial répétait la même observation pour chaque station météo d'un pays (jusqu'à 22 fois pour l'Inde). Une fois corrigé, il reste <b>13 130 observations réelles sur 28 242 lignes</b> ; sans cette correction, l'Inde pesait 14&nbsp;% des données au lieu d'environ 1&nbsp;%.</li>
+  <li><b>Des valeurs impossibles :</b> 231 parcelles simulées avaient un rendement négatif ; elles ont été retirées (0,02&nbsp;% du jeu).</li>
+  <li><b>Des unités différentes :</b> les rendements mondiaux, exprimés en hectogrammes par hectare, ont été convertis en tonnes par hectare.</li>
+</ul>
+
+<figure class="narrow">
+  <img src="../../reports/figures/rapport_01_rendement_culture.png" alt="Rendement médian par culture">
+  <figcaption><b>Figure 1 – Rendement habituel de chaque culture (données mondiales).</b> Les tubercules (pomme de terre, manioc, igname, patate douce, plantains) produisent bien plus de tonnes par hectare que les céréales et le soja ; ce sont aussi des cultures plus lourdes et riches en eau, ce qui compte pour la rentabilité (partie 6).</figcaption>
+</figure>
+</section>
+
+<!-- =============================================================== 3. VARIABLES CLÉS -->
+<section>
+<h2>3. Les variables clés du rendement</h2>
+
+<p>Trois analyses concordantes, détaillées dans les notebooks du projet, identifient ce qui fait varier le rendement : une <b>analyse en composantes principales</b> (ACP, qui repère les variables qui évoluent ensemble), la mesure du lien de chaque variable avec le rendement, et l'<b>importance des variables pour le modèle</b> (figure 2).</p>
+
+<figure class="narrow">
+  <img src="../../reports/figures/rapport_03_importance.png" alt="Importance des variables pour le modèle">
+  <figcaption><b>Figure 2 – Ce sur quoi s'appuie le modèle.</b> On « brouille » une variable à la fois et on mesure de combien l'erreur augmente : plus elle augmente, plus la variable compte. Sans la culture, l'erreur bondit de 5,2 t/ha.</figcaption>
+</figure>
+
+<table>
+  <tr><th>Variable</th><th>Rôle</th><th>Ce qu'il faut en retenir</th></tr>
+  <tr><td><b>Culture</b></td><td>1<sup>er</sup> facteur, de loin</td><td>Explique 58&nbsp;% des différences de rendement dans les données mondiales.</td></tr>
+  <tr><td><b>Engrais</b></td><td>Levier de pratique</td><td>≈ +45&nbsp;% de rendement (parcelles simulées).</td></tr>
+  <tr><td><b>Irrigation</b></td><td>Levier de pratique</td><td>≈ +36&nbsp;% de rendement ; s'additionne à l'engrais.</td></tr>
+  <tr><td><b>Température</b></td><td>Facteur climatique</td><td>Effet surtout <b>négatif</b> : les régions chaudes ont des rendements plus faibles, à culture égale (sauf manioc).</td></tr>
+  <tr><td><b>Intensification agricole</b></td><td>Indicateur du contexte</td><td>Mesurée par l'usage total de pesticides du pays : reflète le niveau de modernisation de l'agriculture, <b>pas</b> un effet direct des pesticides.</td></tr>
+  <tr><td><b>Pluie annuelle</b></td><td>Faible à l'échelle d'un pays</td><td>Décisive dans les parcelles simulées, quasi muette dans les données mondiales : une moyenne nationale annuelle est trop grossière pour décrire l'eau disponible sur une parcelle.</td></tr>
+  <tr><td>Type de sol, région, météo, durée de culture</td><td>Aucun effet mesurable</td><td>Dans les parcelles simulées, ces variables ne changent pas le rendement.</td></tr>
+</table>
+
+<div class="box">
+  <h4>Un résultat qui justifie toute la démarche</h4>
+  <p>Dans les parcelles simulées, les six cultures ont <b>exactement le même rendement moyen</b> (4,65 t/ha) : ces données ne permettent pas de recommander une culture plutôt qu'une autre. Seules les données mondiales réelles révèlent l'écart de 1 à 13 entre cultures. C'est pourquoi le moteur apprend sur ces dernières.</p>
+</div>
+</section>
+
+<!-- =============================================================== 4. MOTEUR -->
+<section>
+<h2>4. Le moteur de prédiction : quelle fiabilité&nbsp;?</h2>
+
+<h3>Comment nous l'avons construit et évalué</h3>
+<ul>
+  <li><b>Une épreuve réaliste :</b> 21 pays ont été mis de côté dès le départ et n'ont servi à aucun réglage. Les résultats ci-dessous mesurent donc la performance sur des pays <b>que le modèle n'a jamais vus</b>, comme ce sera le cas pour un nouveau client.</li>
+  <li><b>Un point de comparaison :</b> chaque modèle a été comparé à une estimation « au bon sens », le rendement habituel de la culture, sans tenir compte des conditions.</li>
+  <li><b>Une sélection systématique :</b> 18 configurations (3 familles de modèles, plusieurs préparations des données) ont été comparées, puis la meilleure a été réglée finement en testant 30 combinaisons de paramètres. Toutes les expériences sont tracées dans l'outil de suivi MLflow (annexe A).</li>
+</ul>
+
+<figure>
+  <img src="../../reports/figures/rapport_05_performance.png" alt="Performance du modèle comparée à la référence">
+  <figcaption><b>Figure 3 – Le modèle comparé à l'estimation « au bon sens », sur 21 pays jamais vus.</b> Il réduit l'erreur moyenne de 19&nbsp;% et classe mieux les cultures entre elles (0,79 contre 0,72 sur une échelle de 0 à 1, où 1 signifie un ordre parfait).</figcaption>
+</figure>
+
+<figure class="narrow">
+  <img src="../../reports/figures/rapport_06_erreur_culture.png" alt="Erreur relative par culture">
+  <figcaption><b>Figure 4 – Précision selon la culture.</b> L'erreur va de 26&nbsp;% du rendement (riz) à 58&nbsp;% (patate douce). Les prédictions sont donc à lire comme des <b>ordres de grandeur</b> et des <b>comparaisons</b> entre cultures, pas comme des promesses de récolte.</figcaption>
+</figure>
+
+<div class="box">
+  <h4>Pouvait-on faire mieux en réglant davantage le modèle&nbsp;?</h4>
+  <p>Non : multiplier par sept le nombre de réglages testés n'améliore l'erreur que de 0,04 t/ha, une différence plus de dix fois inférieure aux variations naturelles de la mesure. La marge de progrès est dans les <b>données</b> (mesures à la parcelle), pas dans le modèle.</p>
+</div>
+</section>
+
+<!-- =============================================================== 5. RECOMMANDATIONS -->
+<section>
+<h2>5. Recommandations agronomiques</h2>
+
+<h3>5.1 Choisir une culture adaptée à son climat</h3>
+<figure>
+  <img src="../../reports/figures/rapport_04_chaleur.png" alt="Effet de la chaleur par culture">
+  <figcaption><b>Figure 5 – Ce que la chaleur fait au rendement</b>, selon le modèle (autres conditions fixées à leur valeur habituelle). Le soja a une courbe irrégulière, appuyée sur peu de pays : son résultat est à interpréter avec prudence.</figcaption>
+</figure>
+<ul>
+  <li><b>En région chaude</b> (au-delà de 24–25&nbsp;°C de moyenne annuelle) : privilégier les cultures tolérantes, <b>manioc</b>, <b>igname</b> et <b>plantains</b>. Le <b>maïs</b>, le <b>sorgho</b>, la <b>pomme de terre</b> et le <b>blé</b> y perdent plus de la moitié de leur potentiel.</li>
+  <li><b>En région tempérée</b> : la <b>pomme de terre</b> est la plus productive ; parmi les céréales, le <b>maïs</b> et le <b>blé</b> y donnent leurs meilleurs rendements.</li>
+</ul>
+
+<figure>
+  <img src="../../reports/figures/rapport_07_profils.png" alt="Classement des cultures pour trois profils de parcelle">
+  <figcaption><b>Figure 6 – Le classement de l'outil pour trois profils de région</b> (même échelle). En climat tropical humide, les plantains, l'igname et le manioc passent devant la pomme de terre ; l'ordre des céréales change aussi d'un climat à l'autre.</figcaption>
+</figure>
+
+<h3>5.2 Investir dans l'engrais, puis dans l'irrigation</h3>
+<div class="two-col">
+  <figure>
+    <img src="../../reports/figures/rapport_02_pratiques.png" alt="Effet de l'engrais et de l'irrigation">
+    <figcaption><b>Figure 7 – Effet des pratiques</b> (parcelles simulées).</figcaption>
+  </figure>
+  <div>
+    <ul>
+      <li>L'<b>engrais</b> est le levier le plus fort (+45&nbsp;%), suivi de l'<b>irrigation</b> (+36&nbsp;%).</li>
+      <li>Les deux <b>s'additionnent</b> : ensemble, +81&nbsp;% par rapport à une parcelle sans aucun des deux.</li>
+      <li>Dans l'outil, une parcelle aux pratiques « moyennes » garde la prédiction du modèle ; avec engrais et irrigation, elle gagne environ <b>+29&nbsp;%</b> ; sans aucun des deux, elle perd environ <b>−29&nbsp;%</b>.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>5.3 Lire correctement l'« intensification agricole »</h3>
+<p>Les régions qui utilisent le plus d'intrants obtiennent des rendements 2 à 5 fois supérieurs. Ce lien traduit l'effet <b>de l'ensemble des pratiques modernes</b> (mécanisation, variétés, fertilisation, conseil technique) : il <b>ne permet pas de recommander d'utiliser davantage de pesticides</b>. C'est pourquoi l'application présente ce critère comme un « niveau d'intensification de la région », en cinq crans, et non en tonnes de pesticides.</p>
+</section>
+
+<!-- =============================================================== 6. PROFIT -->
+<section>
+<h2>6. Du rendement au profit</h2>
+
+<p>L'objectif d'Agritech Answers est d'aider l'agriculteur à choisir la culture <b>la plus rentable</b>. Or les données fournies ne contiennent <b>ni prix de vente ni coûts de production</b>. L'outil classe donc aujourd'hui les cultures selon leur <b>rendement physique</b> (tonnes par hectare), ce qui n'est pas la même chose que leur rentabilité :</p>
+
+<div class="box">
+  <h4>Profit par hectare = rendement (t/ha) × prix de vente (€/t) − coûts de production (€/ha)</h4>
+  <p>Les tubercules arrivent presque toujours en tête en tonnes, car ce sont des cultures lourdes et riches en eau, généralement vendues moins cher à la tonne que les céréales ou le soja. Un classement en tonnes surestime donc mécaniquement leur intérêt économique.</p>
+</div>
+
+<h3>Ce que nous recommandons</h3>
+<ol>
+  <li><b>Ajouter à l'application le prix local de chaque culture</b> (saisi par l'agriculteur ou issu d'une base de prix à la production) : le classement passerait du rendement au <b>chiffre d'affaires par hectare</b>, sans changer le modèle.</li>
+  <li><b>Y ajouter ensuite les coûts</b> (semences, engrais, irrigation) pour obtenir une <b>marge par hectare</b> ; cela permettrait aussi d'évaluer si le surcoût de l'engrais ou de l'irrigation est rentabilisé par le gain de rendement de 45&nbsp;% ou 36&nbsp;%.</li>
+  <li>En attendant, <b>utiliser l'outil pour présélectionner</b> les cultures adaptées au climat de la parcelle, puis comparer leur rentabilité avec les prix du marché local.</li>
+</ol>
+<p class="small">Nous n'avons volontairement intégré aucun prix « indicatif » : des chiffres non sourcés donneraient une fausse impression de précision.</p>
+</section>
+
+<!-- =============================================================== 7. APPLICATION -->
+<section>
+<h2>7. L'application</h2>
+
+<p>L'outil est accessible en ligne, sans installation : <a href="https://agritech-crop-reco.streamlit.app">agritech-crop-reco.streamlit.app</a>. La première ouverture peut prendre jusqu'à une minute (mise en veille du serveur gratuit).</p>
+
+<ol>
+  <li>Dans le panneau de gauche, régler les <b>conditions de la parcelle</b> : température moyenne, pluie annuelle, niveau d'intensification de la région, usage d'engrais et d'irrigation (« non renseigné » = pratique moyenne). Les curseurs sont limités aux conditions présentes dans les données.</li>
+  <li>Onglet <b>« Prédire pour une culture »</b> : choisir une culture et obtenir le rendement estimé, ainsi que la part due aux pratiques.</li>
+  <li>Onglet <b>« Recommander une culture »</b> : obtenir le classement des dix cultures (graphique et tableau).</li>
+  <li>Si une valeur sort des conditions connues du modèle, un <b>avertissement</b> signale que la prédiction est moins fiable.</li>
+</ol>
+
+<div class="two-col">
+  <figure class="shot">
+    <img src="../../reports/app/01_predict.png" alt="Application : prédiction pour une culture">
+    <figcaption><b>Figure 8 – Prédiction pour une culture</b> (ici le soja, pratiques non renseignées).</figcaption>
+  </figure>
+  <figure class="shot">
+    <img src="../../reports/app/02_recommend.png" alt="Application : recommandation de cultures">
+    <figcaption><b>Figure 9 – Classement des dix cultures</b> pour les mêmes conditions.</figcaption>
+  </figure>
+</div>
+</section>
+
+<!-- =============================================================== 8. LIMITES -->
+<section>
+<h2>8. Limites et prochaines étapes</h2>
+
+<table>
+  <tr><th>Limite</th><th>Conséquence</th><th>Piste</th></tr>
+  <tr><td>Données <b>nationales et annuelles</b></td><td>Prédictions en ordre de grandeur (erreur de 25 à 60&nbsp;%)</td><td>Collecter des mesures à la parcelle : sol, pluie de la saison, doses à l'hectare</td></tr>
+  <tr><td>Effet de l'engrais et de l'irrigation issu de <b>données simulées</b></td><td>Ordres de grandeur plausibles mais non mesurés sur le terrain</td><td>Valider ces gains avec des essais ou des données d'exploitations clientes</td></tr>
+  <tr><td><b>Pas de prix ni de coûts</b></td><td>Classement en tonnes, pas en profit</td><td>Ajouter prix et coûts (partie 6)</td></tr>
+  <tr><td>Données <b>1990–2013</b></td><td>Ne reflètent pas les variétés ni le climat récents</td><td>Mettre à jour avec les séries FAO récentes ; le pipeline automatisé le permet</td></tr>
+  <tr><td>Dix cultures seulement</td><td>Pas d'orge ni de coton, par exemple</td><td>Élargir avec les autres cultures disponibles à la FAO</td></tr>
+</table>
+
+<div class="box">
+  <h4>Un système prêt à évoluer</h4>
+  <p>L'ensemble est automatisé (annexe B) : à chaque modification, le code est testé, l'application reconstruite et redéployée, et le modèle peut être réentraîné avec un <b>garde-fou</b> qui bloque toute version moins performante que celle en service. Intégrer de nouvelles données ou des prix ne demande donc pas de repartir de zéro.</p>
+</div>
+</section>
+
+<!-- =============================================================== ANNEXE A -->
+<section>
+<h2>Annexe A – Suivi des expériences (MLflow)</h2>
+
+<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Deux expériences ont été menées : la <b>sélection</b> du modèle (19 essais, dont la référence) et son <b>optimisation</b> (30 réglages testés).</p>
+
+<figure class="shot">
+  <img src="../../reports/mlflow/01_selection.png" alt="MLflow : expérience de sélection">
+  <figcaption><b>Figure A1 – Sélection du modèle.</b> Les 19 configurations comparées, avec l'erreur en validation croisée par pays (<i>cv_rmse_mean</i>, en t/ha), la qualité du classement des cultures (<i>cv_ranking_spearman_mean</i>) et le nombre de classements différents que le modèle produit selon les conditions (<i>ranking_variety</i>) : les modèles « ridge » valent 1, ils recommandent toujours le même ordre et ont donc été écartés.</figcaption>
+</figure>
+
+<figure class="shot">
+  <img src="../../reports/mlflow/02_optimisation.png" alt="MLflow : expérience d'optimisation">
+  <figcaption><b>Figure A2 – Optimisation du modèle retenu.</b> Les 30 combinaisons de paramètres testées (« essai 00 » à « essai 29 », regroupés sous le run parent), avec leur erreur en validation croisée (<i>cv_rmse_mean</i>, <i>cv_rmse_std</i>) et les valeurs des paramètres.</figcaption>
+</figure>
+
+<figure class="shot">
+  <img src="../../reports/mlflow/02_optimisation-chart.png" alt="MLflow : coordonnées parallèles de l'optimisation">
+  <figcaption><b>Figure A3 – Lecture visuelle de l'optimisation</b> (vue « coordonnées parallèles », essais affichés à l'écran). Chaque ligne est un essai ; les meilleurs (erreur la plus faible, axe de droite) passent par un taux d'apprentissage et un nombre de feuilles faibles : le modèle gagne à rester simple.</figcaption>
+</figure>
+
+<figure class="shot">
+  <img src="../../reports/mlflow/03_run_final.png" alt="MLflow : détail du modèle final">
+  <figcaption><b>Figure A4 – Modèle final.</b> Paramètres retenus (<i>best_…</i>) et résultats sur les 21 pays de test (<i>test_rmse</i> 4,67 t/ha, <i>test_mae</i> 2,59 t/ha, <i>test_r2</i> 0,70, <i>test_ranking_spearman</i> 0,79).</figcaption>
+</figure>
+</section>
+
+<!-- =============================================================== ANNEXE B -->
+<section>
+<h2>Annexe B – Architecture et automatisation</h2>
+
+<div class="flowchart">
+  <div class="step"><b>Données</b>FAO + parcelles simulées, nettoyées et fusionnées</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>Modèle</b>entraîné, évalué, suivi dans MLflow</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>API</b>FastAPI dans un conteneur Docker, hébergée sur Render</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>Application</b>Streamlit, hébergée sur Streamlit Community Cloud</div>
+</div>
+
+<p>L'application ne contient aucun calcul : elle interroge l'API, qui seule détient le modèle. On peut ainsi mettre à jour le modèle sans toucher à l'interface, et inversement.</p>
+
+<table>
+  <tr><th>Automatisme (GitHub Actions)</th><th>Déclenchement</th><th>Ce qu'il fait</th></tr>
+  <tr><td><b>Intégration continue</b></td><td>Chaque proposition de modification</td><td>Vérifie la qualité du code, lance 68 tests automatiques, construit et teste l'API et l'application dans leurs conteneurs</td></tr>
+  <tr><td><b>Déploiement continu</b></td><td>Chaque version validée</td><td>Rejoue tous les contrôles, publie l'image de l'API, la redéploie et vérifie qu'elle répond en ligne</td></tr>
+  <tr><td><b>Pipeline d'entraînement</b></td><td>À la demande, ou si les données ou le modèle changent</td><td>Prépare les données, réentraîne et évalue le modèle, l'enregistre dans MLflow, et <b>échoue si la performance se dégrade</b> de plus de 5&nbsp;%</td></tr>
+</table>
+
+<p class="small">En cas d'échec, l'auteur de la modification est prévenu par courriel, et la version en ligne n'est pas remplacée. La branche principale est protégée : aucune modification n'y entre sans revue et sans contrôles au vert.</p>
+
+<figure class="shot">
+  <img src="../../reports/cicd/01_cd_pipeline.png" alt="GitHub Actions : pipeline de déploiement">
+  <figcaption><b>Figure B1 – Le pipeline de déploiement</b> : tests, publication de l'image, déploiement et vérification en ligne.</figcaption>
+</figure>
+</section>
+
+</body>
+</html>
