@@ -7,7 +7,8 @@ import os
 import requests
 
 DEFAULT_API_URL = "http://127.0.0.1:8000"
-TIMEOUT_S = 10
+# L'API hébergée (offre gratuite Render) se met en veille : le réveil prend 30 à 60 s.
+TIMEOUT_S = 90
 
 # Cultures connues du modèle (clé = nom envoyé à l'API) -> libellé affiché.
 CROP_LABELS = {
