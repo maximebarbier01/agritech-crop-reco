@@ -16,7 +16,7 @@
   </div>
   <div class="meta">
     <p><b>Destinataire :</b> Gabriel, Lead Data Scientist · <b>Auteur :</b> Maxime Barbier, Data Scientist ML junior</p>
-    <p><b>Version :</b> 1.2.0 · novembre 2026</p>
+    <p><b>Version :</b> 1.3.0 · novembre 2026</p>
     <p><b>Application :</b> <a href="https://agritech-crop-reco.streamlit.app">agritech-crop-reco.streamlit.app</a> · <b>API :</b> <a href="https://agritech-crop-api-latest.onrender.com/docs">agritech-crop-api-latest.onrender.com/docs</a></p>
     <p><b>Code source :</b> <a href="https://github.com/maximebarbier01/agritech-crop-reco">github.com/maximebarbier01/agritech-crop-reco</a></p>
   </div>
@@ -46,7 +46,7 @@
 <h3>Nos recommandations</h3>
 <ul>
   <li><b>Aux agriculteurs :</b> choisir d'abord une culture adaptée à son climat (cultures tolérantes à la chaleur en région chaude), puis investir en priorité dans la fertilisation et l'irrigation.</li>
-  <li><b>À Agritech Answers :</b> utiliser l'outil pour comparer des cultures et estimer des ordres de grandeur, et l'enrichir rapidement avec <b>les prix de vente et les coûts</b> par culture : sans eux, l'outil classe les cultures en <b>tonnes</b>, pas encore en <b>profit</b>.</li>
+  <li><b>À Agritech Answers :</b> utiliser l'outil pour comparer des cultures et estimer des ordres de grandeur, en s'appuyant sur le <b>chiffre d'affaires estimé</b> (rendement × prix FAO, national si disponible), et l'enrichir avec les <b>coûts de production</b> pour passer à une véritable marge.</li>
 </ul>
 
 <div class="box warn">
@@ -81,7 +81,7 @@
 
 <figure class="narrow">
   <img src="../../reports/figures/rapport_01_rendement_culture.png" alt="Rendement médian par culture">
-  <figcaption><b>Figure 1 – Rendement habituel de chaque culture (données mondiales).</b> Les tubercules (pomme de terre, manioc, igname, patate douce, plantains) produisent bien plus de tonnes par hectare que les céréales et le soja ; ce sont aussi des cultures plus lourdes et riches en eau, ce qui compte pour la rentabilité (partie 6).</figcaption>
+  <figcaption><b>Figure 1 – Rendement habituel de chaque culture (données mondiales).</b> Les tubercules (pomme de terre, manioc, igname, patate douce, plantains) produisent bien plus de tonnes par hectare que les céréales et le soja  ; elles se vendent aussi souvent plus cher à la tonne, d'où leur avance en chiffre d'affaires (partie 6).</figcaption>
 </figure>
 </section>
 
@@ -138,6 +138,11 @@
   <h4>Pouvait-on faire mieux en réglant davantage le modèle&nbsp;?</h4>
   <p>Non : multiplier par sept le nombre de réglages testés n'améliore l'erreur que de 0,04 t/ha, une différence plus de dix fois inférieure aux variations naturelles de la mesure. La marge de progrès est dans les <b>données</b> (mesures à la parcelle), pas dans le modèle.</p>
 </div>
+
+<div class="box">
+  <h4>Et avec des données d'intrants réelles&nbsp;?</h4>
+  <p>Nous avons testé l'ajout de mesures officielles FAOSTAT par pays et par année : engrais (azote, phosphate, potasse) et pesticides en kg par hectare, part des terres irriguées. Résultat : l'erreur baisse d'environ <b>5&nbsp;%</b> (R² de 0,59 à 0,63), mais <b>sous le seuil fixé avant l'essai</b> (un gain supérieur aux variations naturelles de la mesure), et sans meilleur classement des cultures. <b>Le modèle en service n'a donc pas été modifié.</b> Ces intrants nationaux évoluent ensemble (un même « niveau d'intensification ») : ils ne disent pas ce que l'engrais ou l'irrigation apportent à <i>une parcelle</i>. C'est la première piste à reprendre avec des données plus récentes (annexe A, figure A5).</p>
+</div>
 </section>
 
 <!-- =============================================================== 5. RECOMMANDATIONS -->
@@ -180,22 +185,39 @@
 
 <!-- =============================================================== 6. PROFIT -->
 <section>
-<h2>6. Du rendement au profit</h2>
+<h2>6. Du rendement au chiffre d'affaires</h2>
 
-<p>L'objectif d'Agritech Answers est d'aider l'agriculteur à choisir la culture <b>la plus rentable</b>. Or les données fournies ne contiennent <b>ni prix de vente ni coûts de production</b>. L'outil classe donc aujourd'hui les cultures selon leur <b>rendement physique</b> (tonnes par hectare), ce qui n'est pas la même chose que leur rentabilité :</p>
+<p>L'objectif d'Agritech Answers est d'aider l'agriculteur à choisir la culture <b>la plus rentable</b>. Les données fournies ne contenant aucun prix, nous avons ajouté les <b>prix à la production publiés par la FAO</b> (FAOSTAT, 2018-2023, en dollars par tonne). Le modèle de rendement ne change pas : l'outil multiplie le rendement prédit par le prix de vente.</p>
 
 <div class="box">
-  <h4>Profit par hectare = rendement (t/ha) × prix de vente (€/t) − coûts de production (€/ha)</h4>
-  <p>Les tubercules arrivent presque toujours en tête en tonnes, car ce sont des cultures lourdes et riches en eau, généralement vendues moins cher à la tonne que les céréales ou le soja. Un classement en tonnes surestime donc mécaniquement leur intérêt économique.</p>
+  <h4>Chiffre d'affaires estimé ($/ha) = rendement prédit (t/ha) × prix de vente ($/t)</h4>
+  <p>C'est un <b>chiffre d'affaires</b>, pas un profit : les <b>coûts de production</b> (plants et semences, main-d'œuvre, engrais, irrigation, stockage) ne sont pas disponibles dans ces données.</p>
 </div>
 
-<h3>Ce que nous recommandons</h3>
+<figure>
+  <img src="../../reports/figures/rapport_08_tonnes_vs_ca.png" alt="Classement des cultures en tonnes et en chiffre d'affaires">
+  <figcaption><b>Figure 8 – Le même classement, en tonnes et en chiffre d'affaires</b> (rendement médian observé × prix médian mondial). L'igname, 4<sup>e</sup> en tonnes, devient 1<sup>re</sup> en chiffre d'affaires : elle se vend environ quatre fois plus cher à la tonne que le blé ou le maïs.</figcaption>
+</figure>
+
+<h3>Ce que montrent les prix</h3>
+<ul>
+  <li><b>Les tubercules ne se vendent pas moins cher à la tonne</b> que les céréales : pomme de terre ≈ 360 $/t, manioc ≈ 350 $/t, contre ≈ 260 $/t pour le blé et ≈ 280 $/t pour le maïs ; l'igname atteint ≈ 1 060 $/t. Leur avance en tonnes se retrouve donc, voire s'accentue, en chiffre d'affaires.</li>
+  <li><b>Les prix varient beaucoup d'un pays à l'autre</b> : pour l'igname, la moitié des pays se situent entre 670 et 2 150 $/t. Un prix mondial n'est qu'un ordre de grandeur.</li>
+  <li><b>La différence entre tonnes et rentabilité se jouera donc sur les coûts</b> : les tubercules demandent davantage de main-d'œuvre et de plants, et se conservent moins bien.</li>
+</ul>
+
+<h3>Dans l'application</h3>
+<ul>
+  <li>Les cultures sont classées par <b>chiffre d'affaires estimé</b> (ou, au choix, par rendement).</li>
+  <li>L'agriculteur peut indiquer son <b>pays</b> : l'outil utilise alors le <b>prix national</b> quand la FAO en publie un (84 pays du modèle), et la médiane mondiale sinon. Le pays ne sert qu'au prix, jamais à prédire le rendement. L'<b>origine de chaque prix</b> (national ou mondial) est affichée, car un même classement peut mélanger les deux.</li>
+  <li>Il peut aussi <b>saisir ses propres prix de vente</b>, qui priment sur tous les autres.</li>
+</ul>
+
+<h3>Ce que nous recommandons ensuite</h3>
 <ol>
-  <li><b>Ajouter à l'application le prix local de chaque culture</b> (saisi par l'agriculteur ou issu d'une base de prix à la production) : le classement passerait du rendement au <b>chiffre d'affaires par hectare</b>, sans changer le modèle.</li>
-  <li><b>Y ajouter ensuite les coûts</b> (semences, engrais, irrigation) pour obtenir une <b>marge par hectare</b> ; cela permettrait aussi d'évaluer si le surcoût de l'engrais ou de l'irrigation est rentabilisé par le gain de rendement de 45&nbsp;% ou 36&nbsp;%.</li>
-  <li>En attendant, <b>utiliser l'outil pour présélectionner</b> les cultures adaptées au climat de la parcelle, puis comparer leur rentabilité avec les prix du marché local.</li>
+  <li><b>Ajouter les coûts de production</b> par culture pour passer du chiffre d'affaires à une <b>marge par hectare</b>, et vérifier si le surcoût de l'engrais ou de l'irrigation est rentabilisé par leurs gains de rendement (+45&nbsp;% et +36&nbsp;%).</li>
+  <li>Exprimer les prix en <b>monnaie constante</b> et les mettre à jour chaque année : le pipeline automatisé le permet.</li>
 </ol>
-<p class="small">Nous n'avons volontairement intégré aucun prix « indicatif » : des chiffres non sourcés donneraient une fausse impression de précision.</p>
 </section>
 
 <!-- =============================================================== 7. APPLICATION -->
@@ -205,9 +227,9 @@
 <p>L'outil est accessible en ligne, sans installation : <a href="https://agritech-crop-reco.streamlit.app">agritech-crop-reco.streamlit.app</a>. La première ouverture peut prendre jusqu'à une minute (mise en veille du serveur gratuit).</p>
 
 <ol>
-  <li>Dans le panneau de gauche, régler les <b>conditions de la parcelle</b> : température moyenne, pluie annuelle, niveau d'intensification de la région, usage d'engrais et d'irrigation (« non renseigné » = pratique moyenne). Les curseurs sont limités aux conditions présentes dans les données.</li>
-  <li>Onglet <b>« Prédire pour une culture »</b> : choisir une culture et obtenir le rendement estimé, ainsi que la part due aux pratiques.</li>
-  <li>Onglet <b>« Recommander une culture »</b> : obtenir le classement des dix cultures (graphique et tableau).</li>
+  <li>Dans le panneau de gauche, régler les <b>conditions de la parcelle</b> : température moyenne, pluie annuelle, niveau d'intensification de la région, usage d'engrais et d'irrigation (« non renseigné » = pratique moyenne). Les curseurs sont limités aux conditions présentes dans les données. Plus bas, indiquer si on le souhaite son <b>pays</b> (pour les prix) et ses <b>propres prix de vente</b>.</li>
+  <li>Onglet <b>« Prédire pour une culture »</b> : choisir une culture et obtenir le rendement et le chiffre d'affaires estimés, ainsi que la part due aux pratiques et l'origine du prix.</li>
+  <li>Onglet <b>« Recommander une culture »</b> : obtenir le classement des dix cultures, par chiffre d'affaires estimé ou par rendement (graphique et tableau, avec le prix et son origine).</li>
   <li>Si une valeur sort des conditions connues du modèle, un <b>avertissement</b> signale que la prédiction est moins fiable.</li>
 </ol>
 
@@ -230,8 +252,8 @@
 <table>
   <tr><th>Limite</th><th>Conséquence</th><th>Piste</th></tr>
   <tr><td>Données <b>nationales et annuelles</b></td><td>Prédictions en ordre de grandeur (erreur de 25 à 60&nbsp;%)</td><td>Collecter des mesures à la parcelle : sol, pluie de la saison, doses à l'hectare</td></tr>
-  <tr><td>Effet de l'engrais et de l'irrigation issu de <b>données simulées</b></td><td>Ordres de grandeur plausibles mais non mesurés sur le terrain</td><td>Valider ces gains avec des essais ou des données d'exploitations clientes</td></tr>
-  <tr><td><b>Pas de prix ni de coûts</b></td><td>Classement en tonnes, pas en profit</td><td>Ajouter prix et coûts (partie 6)</td></tr>
+  <tr><td>Effet de l'engrais et de l'irrigation issu de <b>données simulées</b></td><td>Ordres de grandeur plausibles mais non mesurés sur le terrain</td><td>Valider ces gains avec des essais ou des données d'exploitations clientes ; les intrants nationaux FAOSTAT, testés, ne permettent pas de les isoler</td></tr>
+  <tr><td><b>Pas de coûts de production</b> ; prix médians en dollars courants</td><td>Classement en chiffre d'affaires, pas encore en marge ; prix à prendre comme ordres de grandeur</td><td>Ajouter les coûts par culture ; prix en monnaie constante, mis à jour chaque année (partie 6)</td></tr>
   <tr><td>Pas encore de <b>détection automatique de dérive</b></td><td>Une évolution des conditions saisies ou de la qualité des prédictions ne déclenche pas d'alerte</td><td>Les prédictions sont déjà enregistrées (annexe B) : comparer régulièrement leurs conditions aux données d'entraînement et alerter en cas d'écart</td></tr>
   <tr><td>Données <b>1990–2013</b></td><td>Ne reflètent pas les variétés ni le climat récents</td><td>Mettre à jour avec les séries FAO récentes ; le pipeline automatisé le permet</td></tr>
   <tr><td>Dix cultures seulement</td><td>Pas d'orge ni de coton, par exemple</td><td>Élargir avec les autres cultures disponibles à la FAO</td></tr>
@@ -247,7 +269,7 @@
 <section>
 <h2>Annexe A – Suivi des expériences (MLflow)</h2>
 
-<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Deux expériences ont été menées : la <b>sélection</b> du modèle (19 essais, dont la référence) et son <b>optimisation</b> (30 réglages testés).</p>
+<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Trois expériences ont été menées : la <b>sélection</b> du modèle (19 essais, dont la référence), son <b>optimisation</b> (30 réglages testés), puis le test d'<b>intrants FAOSTAT réels</b> (3 configurations, non retenues).</p>
 
 <figure class="shot">
   <img src="../../reports/mlflow/01_selection.png" alt="MLflow : expérience de sélection">
@@ -267,6 +289,16 @@
 <figure class="shot">
   <img src="../../reports/mlflow/03_run_final.png" alt="MLflow : détail du modèle final">
   <figcaption><b>Figure A4 – Modèle final.</b> Paramètres retenus (<i>best_…</i>) et résultats sur les 21 pays de test (<i>test_rmse</i> 4,67 t/ha, <i>test_mae</i> 2,59 t/ha, <i>test_r2</i> 0,70, <i>test_ranking_spearman</i> 0,79).</figcaption>
+</figure>
+
+<figure class="narrow">
+  <img src="../../reports/figures/05_intrants_decision.png" alt="Expérience intrants FAOSTAT : résultats et seuil de décision">
+  <figcaption><b>Figure A5 – Intrants FAOSTAT réels (expérience 03).</b> Erreur en validation croisée par pays des trois configurations, avec le seuil de décision fixé avant l'essai (ligne rouge) : le gain d'environ 5&nbsp;% ne franchit pas le seuil, la configuration n'est pas retenue.</figcaption>
+</figure>
+
+<figure class="shot">
+  <img src="../../reports/mlflow/04_intrants.png" alt="MLflow : expérience intrants FAOSTAT">
+  <figcaption><b>Figure A6 – L'expérience 03 dans MLflow</b> : les trois configurations et le run « Décision » (seuil, importances, corrélations).</figcaption>
 </figure>
 </section>
 
@@ -290,7 +322,7 @@
 
 <table>
   <tr><th>Automatisme (GitHub Actions)</th><th>Déclenchement</th><th>Ce qu'il fait</th></tr>
-  <tr><td><b>Intégration continue</b></td><td>Chaque proposition de modification</td><td>Vérifie la qualité du code, lance 75 tests automatiques, construit et teste l'API et l'application dans leurs conteneurs</td></tr>
+  <tr><td><b>Intégration continue</b></td><td>Chaque proposition de modification</td><td>Vérifie la qualité du code, lance 96 tests automatiques, construit et teste l'API et l'application dans leurs conteneurs</td></tr>
   <tr><td><b>Déploiement continu</b></td><td>Chaque version validée</td><td>Rejoue tous les contrôles, publie l'image de l'API, la redéploie et vérifie qu'elle répond en ligne</td></tr>
   <tr><td><b>Pipeline d'entraînement</b></td><td>À la demande, ou si les données ou le modèle changent</td><td>Prépare les données, réentraîne et évalue le modèle, l'enregistre dans MLflow, et <b>échoue si la performance se dégrade</b> de plus de 5&nbsp;%</td></tr>
 </table>

@@ -23,6 +23,9 @@ from api_client import (
 )
 
 PRACTICE_CHOICES = {"Non renseigné (pratique moyenne)": None, "Oui": True, "Non": False}
+NO_COUNTRY = "Non précisé (prix mondiaux)"
+RANK_CHOICES = {"Chiffre d'affaires estimé": "revenue", "Rendement": "yield"}
+SOURCE_LABELS = {"saisi": "saisi", "national": "national", "mondial": "médiane mondiale"}
 DEFAULT_TEMP_C = 18.5
 DEFAULT_RAIN_MM = 900.0
 
@@ -91,6 +94,42 @@ def sidebar_conditions(meta: dict) -> dict:
     return conditions_payload(temp, rain, pesticides, fertilizer, irrigation)
 
 
+def sidebar_pricing(meta: dict) -> dict:
+    """Pays (pour les prix uniquement) et prix de vente saisis : options envoyées à l'API."""
+    st.sidebar.header("Prix de vente")
+    info = meta.get("price_info") or {}
+    if info:
+        period = "-".join(str(y) for y in info.get("period", []))
+        st.sidebar.caption(f"FAOSTAT, prix à la production {period}, en dollars par tonne.")
+    country = st.sidebar.selectbox(
+        "Pays de l'exploitation",
+        [NO_COUNTRY, *meta.get("countries", [])],
+        help="Sert uniquement à choisir les prix nationaux ; il ne change pas le rendement prédit. "
+        "Sans prix national pour une culture, la médiane mondiale est utilisée.",
+    )
+    custom = {}
+    with st.sidebar.expander("Mes prix de vente (facultatif)"):
+        st.caption("0 = utiliser le prix national ou mondial.")
+        for crop in CROP_LABELS:
+            world = (info.get("world") or {}).get(crop, {}).get("price_usd_t")
+            value = st.number_input(
+                f"{label(crop)} ($/t)",
+                min_value=0.0,
+                value=0.0,
+                step=10.0,
+                key=f"price_{crop}",
+                help=f"Médiane mondiale : {fr(world, 0)} $/t" if world else None,
+            )
+            if value > 0:
+                custom[crop] = value
+    options: dict = {}
+    if country != NO_COUNTRY:
+        options["country"] = country
+    if custom:
+        options["prices_usd_t"] = custom
+    return options
+
+
 def show_warnings(warnings: list[str]) -> None:
     for message in warnings:
         st.warning(message)
@@ -109,7 +148,7 @@ def _last_result(key: str, inputs) -> dict | None:
 
 def tab_predict(conditions: dict) -> None:
     crop = st.selectbox("Culture", list(CROP_LABELS), format_func=label)
-    inputs = (crop, tuple(conditions.items()))
+    inputs = (crop, repr(sorted(conditions.items())))
     if st.button("Prédire le rendement", type="primary"):
         try:
             st.session_state["predict"] = {"inputs": inputs, "result": predict(crop, conditions)}
@@ -120,11 +159,24 @@ def tab_predict(conditions: dict) -> None:
     if result is None:
         return
     show_warnings(result["warnings"])
-    st.metric(f"Rendement estimé – {label(crop)}", f"{fr(result['yield_t_ha'])} t/ha")
+    col_yield, col_revenue = st.columns(2)
+    col_yield.metric(f"Rendement estimé – {label(crop)}", f"{fr(result['yield_t_ha'])} t/ha")
+    if result.get("revenue_usd_ha") is not None:
+        col_revenue.metric("Chiffre d'affaires estimé", f"{fr(result['revenue_usd_ha'], 0)} $/ha")
     st.caption(
         f"Modèle seul (pratiques moyennes) : {fr(result['yield_base_t_ha'])} t/ha · "
         f"ajustement engrais / irrigation : × {fr(result['practice_factor'])}"
+        + (
+            f" · prix : {fr(result['price_usd_t'], 0)} $/t "
+            f"({SOURCE_LABELS.get(result['price_source'], result['price_source'])})"
+            if result.get("price_usd_t") is not None
+            else ""
+        )
     )
+
+
+REVENUE_COL = "Chiffre d'affaires estimé ($/ha)"
+YIELD_COL = "Rendement estimé (t/ha)"
 
 
 def ranking_table(ranking: list[dict]) -> pd.DataFrame:
@@ -132,18 +184,25 @@ def ranking_table(ranking: list[dict]) -> pd.DataFrame:
         {
             "Rang": [r["rank"] for r in ranking],
             "Culture": [label(r["crop"]) for r in ranking],
-            "Rendement estimé (t/ha)": [r["yield_t_ha"] for r in ranking],
-            "Modèle seul (t/ha)": [r["yield_base_t_ha"] for r in ranking],
+            REVENUE_COL: [r.get("revenue_usd_ha") for r in ranking],
+            YIELD_COL: [r["yield_t_ha"] for r in ranking],
+            "Prix ($/t)": [r.get("price_usd_t") for r in ranking],
+            "Origine du prix": [SOURCE_LABELS.get(r.get("price_source"), "–") for r in ranking],
             "Ajustement pratiques": [r["practice_factor"] for r in ranking],
         }
     )
 
 
 def tab_recommend(conditions: dict) -> None:
-    inputs = tuple(conditions.items())
+    choice = st.segmented_control(
+        "Classer par", list(RANK_CHOICES), default=list(RANK_CHOICES)[0], required=True
+    )
+    rank_by = RANK_CHOICES[choice]
+    request = {**conditions, "rank_by": rank_by}
+    inputs = repr(sorted(request.items()))
     if st.button("Classer les cultures", type="primary"):
         try:
-            st.session_state["recommend"] = {"inputs": inputs, "result": recommend(conditions)}
+            st.session_state["recommend"] = {"inputs": inputs, "result": recommend(request)}
         except ApiError as exc:
             st.error(str(exc))
             return
@@ -152,18 +211,25 @@ def tab_recommend(conditions: dict) -> None:
         return
     show_warnings(result["warnings"])
     table = ranking_table(result["ranking"])
+    by_revenue = result.get("rank_by") == "revenue" and table[REVENUE_COL].notna().all()
     best = table.iloc[0]
-    st.success(
-        f"Meilleure culture : **{best['Culture']}** ({fr(best['Rendement estimé (t/ha)'])} t/ha)"
+    headline = (
+        f"{fr(best[REVENUE_COL], 0)} $/ha estimés, {fr(best[YIELD_COL])} t/ha"
+        if by_revenue
+        else f"{fr(best[YIELD_COL])} t/ha"
     )
-    fig = px.bar(table, x="Rendement estimé (t/ha)", y="Culture", orientation="h")
+    st.success(f"Meilleure culture : **{best['Culture']}** ({headline})")
+    metric = REVENUE_COL if by_revenue else YIELD_COL
+    fig = px.bar(table, x=metric, y="Culture", orientation="h")
     fig.update_yaxes(categoryorder="total ascending")
     st.plotly_chart(fig, width="stretch")
     # Tableau d'affichage : valeurs formatées en français (le classement est déjà fait)
+    money = lambda v: "–" if pd.isna(v) else fr(v, 0)  # noqa: E731
     display = table.assign(
         **{
-            "Rendement estimé (t/ha)": table["Rendement estimé (t/ha)"].map(fr),
-            "Modèle seul (t/ha)": table["Modèle seul (t/ha)"].map(fr),
+            REVENUE_COL: table[REVENUE_COL].map(money),
+            YIELD_COL: table[YIELD_COL].map(fr),
+            "Prix ($/t)": table["Prix ($/t)"].map(money),
             "Ajustement pratiques": table["Ajustement pratiques"].map(lambda v: f"× {fr(v)}"),
         }
     )
@@ -185,7 +251,7 @@ def main() -> None:
         st.stop()
     st.sidebar.caption(f"API : {api_url()}\n\nModèle : {info['model_version']}")
 
-    conditions = sidebar_conditions(meta)
+    conditions = {**sidebar_conditions(meta), **sidebar_pricing(meta)}
     predict_tab, recommend_tab = st.tabs(["Prédire pour une culture", "Recommander une culture"])
     with predict_tab:
         tab_predict(conditions)

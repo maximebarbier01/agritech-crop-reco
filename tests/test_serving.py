@@ -51,7 +51,7 @@ def test_predict_rejects_unknown_crop(service, conditions):
 
 
 def test_recommend_ranks_all_crops_descending(service, conditions):
-    ranking = service.recommend(conditions)
+    ranking = service.recommend(conditions, rank_by="yield")
     assert [r["rank"] for r in ranking] == list(range(1, 11))
     assert {r["crop"] for r in ranking} == set(service.crops)
     yields = [r["yield_t_ha"] for r in ranking]
@@ -68,3 +68,53 @@ def test_warnings_only_outside_training_range(service, conditions):
     hot = Conditions(avg_temp_c=35, rainfall_mm=900, pesticides_tonnes=12_000)
     (warning,) = service.warnings(hot)
     assert "avg_temp_c" in warning
+
+
+# ---------------------------------------------------------------- prix et chiffre d'affaires
+
+
+def test_price_priority_custom_then_national_then_world(service):
+    world = service.prices["world"]["Wheat"]["price_usd_t"]
+    assert service.price_for("Wheat") == (world, "mondial")
+    country = next(c for c, p in service.prices["national"].items() if "Wheat" in p)
+    assert service.price_for("Wheat", country) == (
+        service.prices["national"][country]["Wheat"],
+        "national",
+    )
+    assert service.price_for("Wheat", country, {"Wheat": 999.0}) == (999.0, "saisi")
+
+
+def test_country_without_crop_price_falls_back_to_world(service):
+    country, prices = next((c, p) for c, p in service.prices["national"].items() if "Yams" not in p)
+    price, source = service.price_for("Yams", country)
+    assert source == "mondial" and price == service.prices["world"]["Yams"]["price_usd_t"]
+
+
+def test_recommend_by_revenue_is_sorted_and_consistent(service, conditions):
+    ranking = service.recommend(conditions)  # défaut : chiffre d'affaires
+    revenues = [r["revenue_usd_ha"] for r in ranking]
+    assert revenues == sorted(revenues, reverse=True)
+    for r in ranking:
+        assert r["revenue_usd_ha"] == pytest.approx(r["yield_t_ha"] * r["price_usd_t"])
+
+
+def test_custom_price_can_change_the_ranking(service, conditions):
+    by_yield = service.recommend(conditions, rank_by="yield")
+    last = by_yield[-1]["crop"]
+    boosted = service.recommend(conditions, custom_prices={last: 1e6})
+    assert boosted[0]["crop"] == last and boosted[0]["price_source"] == "saisi"
+
+
+def test_unknown_country_and_rank_by_are_rejected(service, conditions):
+    with pytest.raises(ValueError, match="Pays"):
+        service.recommend(conditions, country="Atlantide")
+    with pytest.raises(ValueError, match="rank_by"):
+        service.recommend(conditions, rank_by="profit")
+
+
+def test_without_price_table_ranking_falls_back_to_yield(service, conditions):
+    no_prices = YieldService(service.model, service.card, service.gains, prices=None)
+    ranking = no_prices.recommend(conditions)
+    assert ranking[0]["revenue_usd_ha"] is None
+    yields = [r["yield_t_ha"] for r in ranking]
+    assert yields == sorted(yields, reverse=True)

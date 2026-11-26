@@ -31,7 +31,9 @@ from sqlalchemy import (
     create_engine,
     func,
     insert,
+    inspect,
     select,
+    text,
 )
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -51,6 +53,9 @@ predictions = Table(
     Column("crop", String(40)),  # culture demandée (/predict)
     Column("top_crop", String(40)),  # culture retenue : demandée (/predict) ou 1re (/recommend)
     Column("yield_t_ha", Float),  # rendement prédit de cette culture
+    Column("revenue_usd_ha", Float),  # chiffre d'affaires estimé de cette culture (v1.3.0)
+    Column("country", String(80)),  # pays choisi pour les prix (v1.3.0), jamais pour le modèle
+    Column("rank_by", String(10)),  # /recommend : "revenue" ou "yield" (v1.3.0)
     Column("avg_temp_c", Float, nullable=False),
     Column("rainfall_mm", Float, nullable=False),
     Column("pesticides_tonnes", Float, nullable=False),
@@ -69,6 +74,20 @@ class PredictionStore:
     def __init__(self, url: str):
         self.engine: Engine = create_engine(url, pool_pre_ping=True)
         metadata.create_all(self.engine)
+        self._add_missing_columns()
+
+    def _add_missing_columns(self) -> None:
+        """Migration douce : une table créée par une version antérieure (ex. sur Neon en
+        v1.2.0) reçoit les colonnes ajoutées depuis, toutes facultatives (NULL autorisé)."""
+        existing = {c["name"] for c in inspect(self.engine).get_columns(predictions.name)}
+        missing = [c for c in predictions.columns if c.name not in existing]
+        with self.engine.begin() as conn:
+            for column in missing:
+                type_sql = column.type.compile(dialect=self.engine.dialect)
+                conn.execute(
+                    text(f"ALTER TABLE {predictions.name} ADD COLUMN {column.name} {type_sql}")
+                )
+                logger.info("Colonne ajoutée à la table %s : %s", predictions.name, column.name)
 
     @classmethod
     def from_env(cls) -> PredictionStore | None:

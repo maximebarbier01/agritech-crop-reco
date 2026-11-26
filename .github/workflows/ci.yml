@@ -6,11 +6,14 @@ on:
     branches: [develop]   # branche d'intégration (après chaque merge de PR)
   workflow_call:          # réutilisé par cd.yml : tests -> build -> déploiement sur main
 
-# Une seule exécution par branche : une nouvelle poussée annule la précédente.
+# Une seule exécution à la fois par branche. Sur une PR, une nouvelle poussée annule la
+# précédente (devenue obsolète). Sur develop et main, on n'annule JAMAIS : un commit dont la CI
+# a été annulée garde un contrôle « annulé », que le ruleset traite comme un échec, ce qui
+# bloque ensuite la PR de release qui pointe sur ce même commit (cas de la v1.3.0).
 # (github.workflow = "CD" quand ce fichier est appelé par cd.yml : pas de conflit de groupe)
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

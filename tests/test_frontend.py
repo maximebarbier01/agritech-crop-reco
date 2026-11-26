@@ -29,6 +29,11 @@ METADATA = {
             ("Très élevé", 0.9, 50891.9),
         ]
     ],
+    "countries": ["France", "Kenya"],
+    "price_info": {
+        "period": [2018, 2023],
+        "world": {"Potatoes": {"price_usd_t": 362.0}, "Wheat": {"price_usd_t": 260.0}},
+    },
     "model_version": "test@abc",
 }
 PREDICTION = {
@@ -39,14 +44,32 @@ PREDICTION = {
     "warnings": ["pluie hors de la plage d'entraînement"],
     "model_version": "test@abc",
 }
+PRICED = {"price_source": "mondial"}
 RANKING = {
     "ranking": [
-        {**PREDICTION, "crop": "Potatoes", "yield_t_ha": 21.0, "rank": 1},
-        {**PREDICTION, "crop": "Wheat", "rank": 2},
+        {
+            **PREDICTION,
+            **PRICED,
+            "crop": "Potatoes",
+            "yield_t_ha": 21.0,
+            "rank": 1,
+            "price_usd_t": 362.0,
+            "revenue_usd_ha": 7602.0,
+        },
+        {
+            **PREDICTION,
+            **PRICED,
+            "crop": "Wheat",
+            "rank": 2,
+            "price_usd_t": 260.0,
+            "revenue_usd_ha": 650.0,
+        },
     ],
+    "rank_by": "revenue",
+    "country": None,
     "warnings": [],
     "model_version": "test@abc",
-    "note": "Classement par rendement physique.",
+    "note": "Chiffre d'affaires estimé, hors coûts.",
 }
 
 
@@ -190,3 +213,47 @@ def test_metadata_with_missing_fields_is_reported(monkeypatch):
     monkeypatch.setattr(requests, "request", fake_request(FakeResponse(payload={"crops": []})))
     with pytest.raises(api_client.ApiError, match="pesticide_levels"):
         api_client.metadata()
+
+
+def test_recommend_shows_revenue_first(monkeypatch):
+    at = run_app(monkeypatch)
+    at.button[1].click().run()
+    assert "7" in at.success[0].value and "$/ha" in at.success[0].value
+    table = at.dataframe[0].value
+    assert list(table["Origine du prix"]) == ["médiane mondiale", "médiane mondiale"]
+
+
+def test_country_and_rank_choice_are_sent_to_api(monkeypatch):
+    sent = {}
+
+    def fake_recommend(payload):
+        sent.update(payload)
+        return RANKING
+
+    at = run_app(monkeypatch, recommend=fake_recommend)
+    country = next(sb for sb in at.selectbox if sb.label == "Pays de l'exploitation")
+    country.set_value("France").run()
+    at.segmented_control[0].set_value("Rendement").run()
+    at.button[1].click().run()
+    assert sent["country"] == "France" and sent["rank_by"] == "yield"
+
+
+def test_custom_price_is_sent_only_when_filled(monkeypatch):
+    sent = {}
+
+    def fake_predict(crop, payload):
+        sent.update(payload)
+        return {
+            **PREDICTION,
+            "price_usd_t": 500.0,
+            "price_source": "saisi",
+            "revenue_usd_ha": 1250.0,
+        }
+
+    at = run_app(monkeypatch, predict=fake_predict)
+    at.button[0].click().run()
+    assert "prices_usd_t" not in sent  # rien de saisi
+    at.number_input(key="price_Wheat").set_value(500.0).run()
+    at.button[0].click().run()
+    assert sent["prices_usd_t"] == {"Wheat": 500.0}
+    assert any("$/ha" in m.value for m in at.metric)

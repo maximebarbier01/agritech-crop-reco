@@ -78,6 +78,8 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 | `POST /predict` | culture + conditions de la parcelle | rendement prédit (t/ha) |
 | `POST /recommend` | conditions de la parcelle | les 10 cultures classées par rendement décroissant |
 
+- **Prix et chiffre d'affaires** : `models/crop_prices.json` (FAOSTAT, prix à la production 2018-2023, USD/t ; médiane par pays et médiane mondiale). Chaque culture renvoie `price_usd_t`, `price_source` (`saisi` > `national` > `mondial`) et `revenue_usd_ha` = rendement × prix, **hors coûts**. `/recommend` classe par chiffre d'affaires (`rank_by="revenue"`, défaut) ou par rendement (`"yield"`). Options : `country` (prix nationaux, sans effet sur le rendement prédit) et `prices_usd_t` (prix saisis). Régénérer : `python -m agritech_crop_reco.data.prices`.
+
 Conditions : `avg_temp_c`, `rainfall_mm`, `pesticides_tonnes` (obligatoires), `fertilizer_used`, `irrigation_used` (facultatifs, `null` = pratiques moyennes).
 
 - **Rendement prédit** = rendement du modèle × facteur pratiques `(1 + g_E·E + g_I·I) / (1 + 0,5·g_E + 0,5·g_I)` : une parcelle aux pratiques moyennes garde la prédiction du modèle ; engrais + irrigation ≈ +29 %, aucune des deux ≈ −29 %.
@@ -133,6 +135,22 @@ docker run -d --name front --network agri -p 8501:8501 agritech-crop-front   # -
 
 ```bash
 poetry export --only front --without-hashes -f requirements.txt -o frontend/requirements.txt
+```
+
+## Expérience complémentaire – intrants FAOSTAT réels
+
+Test, sans modifier le modèle servi, de l'ajout d'intrants mesurés par pays et par année (FAOSTAT, oct. 2026) : azote, phosphate, potasse et pesticides en kg/ha de terres cultivées, part des terres équipées pour l'irrigation. Même protocole qu'à l'étape 2, mêmes hyperparamètres, règle fixée à l'avance : retenu seulement si le gain dépasse un écart-type.
+
+| Configuration | RMSE CV (t/ha) | R² |
+|---|---|---|
+| Référence (modèle servi) | 4,97 ± 0,44 | 0,59 |
+| + intrants FAOSTAT | 4,71 ± 0,36 | 0,63 |
+
+Gain d'environ 5 % sous le seuil (4,53) : **non retenu**. Détails : `notebooks/05_intrants_faostat.ipynb`, expérience MLflow `agritech-crop-yield-03-intrants-faostat`.
+
+```bash
+python -m agritech_crop_reco.data.faostat               # data/raw/faostat/*.zip -> data/processed/faostat_inputs.csv
+python -m agritech_crop_reco.modeling.experiment_inputs # expérience MLflow 03 (≈ 45 s)
 ```
 
 ## Étape 6 – rapport métier
