@@ -21,6 +21,8 @@ data/processed/*
 !data/processed/.gitkeep
 # Livrable de l'étape 1 (1,2 Mo) : source de vérité de l'entraînement, utilisé par la CI
 !data/processed/crop_yield_consolidated.csv
+# Intrants FAOSTAT raccordés (92 Ko) : expérience 03, sans les fichiers bruts
+!data/processed/faostat_inputs.csv
 
 # Sorties du pipeline (modèle candidat, jamais servi sans relecture)
 artifacts/
