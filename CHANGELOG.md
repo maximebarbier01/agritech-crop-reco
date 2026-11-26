@@ -16,6 +16,7 @@ Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbi
 - Suivi des prédictions : colonnes `country`, `rank_by` et `revenue_usd_ha`, ajoutées automatiquement à une table existante (migration douce au démarrage).
 
 ### Corrigé
+- CI : une exécution sur `develop` ou `main` n'est plus annulée par une exécution plus récente (`cancel-in-progress` limité aux PR). Une annulation laissait un contrôle exigé « annulé » sur le commit et bloquait la PR de release.
 - Rapport : la v1.2.0 affirmait que les tubercules se vendent moins cher à la tonne que les céréales ; les prix FAOSTAT montrent le contraire.
 
 ## [1.2.0] – 2026-11-20

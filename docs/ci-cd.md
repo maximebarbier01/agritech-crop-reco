@@ -40,7 +40,7 @@ flowchart LR
 | `quality` | venv Poetry sur Python 3.11, `poetry check --lock`, installation (`ml`, `api`, `front`, `dev`), `ruff check`, `black --check`, `pytest --cov` | – |
 | `docker` | `docker compose up --build --wait` (API + front), puis appels `/health`, `/predict`, `/recommend` et liaison front -> API | `quality` |
 
-Une nouvelle poussée sur la même branche annule l'exécution précédente.
+Sur une PR, une nouvelle poussée annule l'exécution précédente ; sur `develop` et `main`, une exécution n'est jamais annulée (un contrôle « annulé » bloquerait la PR de release).
 
 ### `cd.yml` – déploiement continu (tests -> build -> déploiement)
 
