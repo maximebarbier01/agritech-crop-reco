@@ -3,6 +3,21 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions [SemVer](https://semver.org/lang/fr/).
 Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbier01/agritech-crop-api:X.Y.Z`.
 
+## [1.3.0] – 2026-11-26
+
+### Ajouté
+- **Chiffre d'affaires estimé** : prix à la production FAOSTAT (2018-2023, USD/t) — médiane nationale pour 84 pays du modèle, médiane mondiale par culture — dans `models/crop_prices.json` (`python -m agritech_crop_reco.data.prices`). `/predict` et `/recommend` renvoient pour chaque culture le prix, son origine (saisi, national, mondial) et le chiffre d'affaires estimé ($/ha), hors coûts de production.
+- **`/recommend` classe par chiffre d'affaires par défaut** (`rank_by="revenue"`, ou `"yield"` pour le rendement). Champs facultatifs `country` (prix nationaux ; jamais utilisé par le modèle de rendement) et `prices_usd_t` (prix saisis, prioritaires). `/metadata` liste les pays et les prix mondiaux.
+- **Interface** : choix du pays, prix de vente saisis, classement par chiffre d'affaires ou par rendement, prix et origine du prix dans le tableau.
+- **Expérience MLflow 03** (`agritech-crop-yield-03-intrants-faostat`, notebook 05) : intrants FAOSTAT réels testés — gain d'environ 5 %, sous le seuil fixé à l'avance, non retenus.
+- **Rapport** : partie 6 réécrite (« Du rendement au chiffre d'affaires »), figure tonnes vs chiffre d'affaires, encadré et figures sur les intrants FAOSTAT.
+
+### Modifié
+- Suivi des prédictions : colonnes `country`, `rank_by` et `revenue_usd_ha`, ajoutées automatiquement à une table existante (migration douce au démarrage).
+
+### Corrigé
+- Rapport : la v1.2.0 affirmait que les tubercules se vendent moins cher à la tonne que les céréales ; les prix FAOSTAT montrent le contraire.
+
 ## [1.2.0] – 2026-11-20
 
 ### Ajouté
@@ -46,6 +61,7 @@ Première version déployée.
 - **Interface Streamlit** : prédiction pour une culture et classement des 10 cultures (graphique + tableau) ; curseurs bornés au domaine appris ; niveau d'intensification agricole.
 - **CI/CD et MLOps** : `ci.yml` (qualité, tests, images Docker), `cd.yml` (Docker Hub puis Render), `train.yml` (pipeline prétraitement -> entraînement -> évaluation -> garde-fou, suivi MLflow sur Neon).
 
+[1.3.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.0...v1.0.1

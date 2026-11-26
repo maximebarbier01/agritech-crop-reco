@@ -261,6 +261,33 @@ def fig_profils(model, features) -> dict:
     return ranks
 
 
+def fig_tonnes_vs_revenue(df: pd.DataFrame, prices: dict) -> pd.DataFrame:
+    """Même culture, deux classements : en tonnes par hectare et en chiffre d'affaires."""
+    med = df.groupby("crop")["yield_t_ha"].median()
+    price = pd.Series({c: v["price_usd_t"] for c, v in prices["world"].items()})
+    table = pd.DataFrame({"t_ha": med, "usd_t": price, "usd_ha": med * price})
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 3.8))
+    for ax, col, xlabel, fmt in [
+        (axes[0], "t_ha", "Rendement médian (t/ha)", lambda v: fr(v)),
+        (axes[1], "usd_ha", "Chiffre d'affaires estimé ($/ha)", lambda v: fr(v, 0)),
+    ]:
+        s = table[col].sort_values(ascending=False)
+        colors = [BLUE if c == s.index[0] else BLUE_LIGHT for c in s.index]
+        hbar(ax, [CROP_FR[c] for c in s.index], s.values, colors, fmt)
+        ax.set_xlim(0, s.max() * 1.25)
+        style_hbar(ax, xlabel)
+    axes[0].set_title("Classement en tonnes", fontsize=9.5, color=INK_2, loc="left")
+    axes[1].set_title(
+        "Classement en chiffre d'affaires (prix médian mondial 2018-2023)",
+        fontsize=9.5,
+        color=INK_2,
+        loc="left",
+    )
+    fig.tight_layout(w_pad=2)
+    save(fig, "08_tonnes_vs_ca")
+    return table.sort_values("usd_ha", ascending=False)
+
+
 def main() -> None:
     settings = load_settings()
     OUT.mkdir(parents=True, exist_ok=True)
@@ -277,6 +304,8 @@ def main() -> None:
     fig_performance(card)
     rel = fig_erreur_culture(model, test, features)
     tops = fig_profils(model, features)
+    prices = json.loads((settings.models_dir / "crop_prices.json").read_text())
+    revenue = fig_tonnes_vs_revenue(df, prices)
 
     # Contrôle de cohérence : les métriques de la fiche sont-elles retrouvées ?
     check = all_metrics(test, test["yield_t_ha"], model.predict(test[features]))
@@ -284,6 +313,7 @@ def main() -> None:
     print("chaleur :", {k: round(v, 1) for k, v in heat.items()})
     print("erreur relative :", rel.round(1).to_dict())
     print("profils :", tops)
+    print("tonnes vs CA :", revenue.round(0).to_dict("index"))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,636 @@
+{
+  "source": "FAOSTAT Producer Prices (export du 9 octobre 2026)",
+  "element": "Producer Price (USD/tonne)",
+  "period": [
+    2018,
+    2023
+  ],
+  "unit": "USD/t",
+  "world": {
+    "Cassava": {
+      "price_usd_t": 348.4,
+      "n_countries": 51.0,
+      "q25": 235.8,
+      "q75": 622.2
+    },
+    "Maize": {
+      "price_usd_t": 284.1,
+      "n_countries": 111.0,
+      "q25": 210.2,
+      "q75": 392.3
+    },
+    "Plantains and others": {
+      "price_usd_t": 442.5,
+      "n_countries": 24.0,
+      "q25": 260.6,
+      "q75": 909.9
+    },
+    "Potatoes": {
+      "price_usd_t": 361.6,
+      "n_countries": 111.0,
+      "q25": 258.9,
+      "q75": 603.6
+    },
+    "Rice": {
+      "price_usd_t": 411.0,
+      "n_countries": 76.0,
+      "q25": 317.0,
+      "q75": 645.2
+    },
+    "Sorghum": {
+      "price_usd_t": 302.5,
+      "n_countries": 46.0,
+      "q25": 205.2,
+      "q75": 421.7
+    },
+    "Soybean": {
+      "price_usd_t": 462.7,
+      "n_countries": 53.0,
+      "q25": 394.3,
+      "q75": 648.2
+    },
+    "Sweet potatoes": {
+      "price_usd_t": 453.6,
+      "n_countries": 61.0,
+      "q25": 297.9,
+      "q75": 1140.0
+    },
+    "Wheat": {
+      "price_usd_t": 260.1,
+      "n_countries": 90.0,
+      "q25": 210.5,
+      "q75": 366.2
+    },
+    "Yams": {
+      "price_usd_t": 1059.3,
+      "n_countries": 31.0,
+      "q25": 673.3,
+      "q75": 2149.6
+    }
+  },
+  "national": {
+    "Albania": {
+      "Maize": 328.6,
+      "Potatoes": 424.1,
+      "Soybean": 628.1,
+      "Wheat": 318.4
+    },
+    "Algeria": {
+      "Potatoes": 352.1,
+      "Wheat": 366.0
+    },
+    "Armenia": {
+      "Potatoes": 304.8,
+      "Wheat": 281.7
+    },
+    "Australia": {
+      "Maize": 278.9,
+      "Potatoes": 427.0,
+      "Rice": 309.7,
+      "Sorghum": 245.8,
+      "Sweet potatoes": 502.7,
+      "Wheat": 233.5
+    },
+    "Austria": {
+      "Maize": 171.9,
+      "Potatoes": 258.1,
+      "Soybean": 422.6,
+      "Wheat": 187.7
+    },
+    "Azerbaijan": {
+      "Maize": 226.4,
+      "Potatoes": 300.0,
+      "Rice": 1591.2,
+      "Wheat": 170.6
+    },
+    "Bahrain": {
+      "Potatoes": 1329.8,
+      "Sweet potatoes": 1329.8
+    },
+    "Bangladesh": {
+      "Maize": 207.4,
+      "Potatoes": 187.1,
+      "Rice": 248.1,
+      "Soybean": 448.4,
+      "Sweet potatoes": 214.8,
+      "Wheat": 288.4
+    },
+    "Belarus": {
+      "Maize": 290.2,
+      "Potatoes": 126.6,
+      "Wheat": 157.6
+    },
+    "Belgium": {
+      "Potatoes": 237.2,
+      "Wheat": 211.7
+    },
+    "Brazil": {
+      "Cassava": 141.1,
+      "Maize": 144.8,
+      "Potatoes": 336.1,
+      "Rice": 246.7,
+      "Sorghum": 110.0,
+      "Soybean": 377.9,
+      "Sweet potatoes": 285.5,
+      "Wheat": 202.8
+    },
+    "Bulgaria": {
+      "Maize": 204.7,
+      "Potatoes": 260.6,
+      "Rice": 401.0,
+      "Sorghum": 224.8,
+      "Soybean": 472.1,
+      "Wheat": 210.2
+    },
+    "Burkina Faso": {
+      "Maize": 308.4,
+      "Sorghum": 312.0
+    },
+    "Burundi": {
+      "Cassava": 249.1,
+      "Maize": 392.5,
+      "Potatoes": 330.1,
+      "Rice": 377.6,
+      "Sorghum": 615.5,
+      "Sweet potatoes": 171.1
+    },
+    "Canada": {
+      "Maize": 184.9,
+      "Potatoes": 263.0,
+      "Soybean": 393.5,
+      "Wheat": 223.3
+    },
+    "Chile": {
+      "Maize": 233.5,
+      "Potatoes": 387.1,
+      "Rice": 298.4,
+      "Wheat": 276.7
+    },
+    "Colombia": {
+      "Cassava": 475.6,
+      "Maize": 411.1,
+      "Plantains and others": 625.5,
+      "Potatoes": 340.0,
+      "Rice": 577.4,
+      "Soybean": 313.0,
+      "Wheat": 586.9,
+      "Yams": 429.2
+    },
+    "Croatia": {
+      "Maize": 163.4,
+      "Potatoes": 248.2,
+      "Soybean": 410.4,
+      "Wheat": 182.8
+    },
+    "Denmark": {
+      "Potatoes": 259.8,
+      "Wheat": 215.8
+    },
+    "Dominican Republic": {
+      "Cassava": 385.9,
+      "Maize": 420.9,
+      "Plantains and others": 274.0,
+      "Potatoes": 454.5,
+      "Rice": 399.8,
+      "Sorghum": 716.1,
+      "Sweet potatoes": 327.1,
+      "Yams": 725.5
+    },
+    "Ecuador": {
+      "Cassava": 222.2,
+      "Maize": 331.8,
+      "Plantains and others": 210.1,
+      "Potatoes": 357.6,
+      "Rice": 325.5,
+      "Soybean": 573.3,
+      "Sweet potatoes": 415.0,
+      "Wheat": 432.5
+    },
+    "Egypt": {
+      "Maize": 339.4,
+      "Potatoes": 354.3,
+      "Rice": 612.6,
+      "Sorghum": 143.5,
+      "Soybean": 870.4,
+      "Sweet potatoes": 206.4,
+      "Wheat": 330.5
+    },
+    "El Salvador": {
+      "Cassava": 304.9,
+      "Maize": 339.5,
+      "Plantains and others": 335.0,
+      "Rice": 371.7,
+      "Sorghum": 327.8
+    },
+    "Estonia": {
+      "Potatoes": 243.6,
+      "Wheat": 211.1
+    },
+    "Finland": {
+      "Potatoes": 219.5,
+      "Wheat": 245.8
+    },
+    "France": {
+      "Maize": 218.1,
+      "Potatoes": 326.5,
+      "Rice": 372.1,
+      "Sorghum": 225.2,
+      "Soybean": 479.9,
+      "Wheat": 229.9
+    },
+    "Germany": {
+      "Maize": 216.7,
+      "Potatoes": 223.1,
+      "Soybean": 440.5,
+      "Wheat": 218.7
+    },
+    "Ghana": {
+      "Cassava": 165.2,
+      "Maize": 293.2,
+      "Plantains and others": 396.0,
+      "Rice": 408.6,
+      "Sorghum": 314.8,
+      "Sweet potatoes": 371.7,
+      "Yams": 423.8
+    },
+    "Greece": {
+      "Maize": 284.6,
+      "Potatoes": 624.1,
+      "Rice": 298.7,
+      "Wheat": 292.8
+    },
+    "Guinea": {
+      "Cassava": 195.6,
+      "Maize": 536.4,
+      "Plantains and others": 110.5,
+      "Potatoes": 1088.9,
+      "Rice": 1050.8,
+      "Sorghum": 513.2,
+      "Sweet potatoes": 45.7,
+      "Yams": 1014.8
+    },
+    "Guyana": {
+      "Cassava": 406.1,
+      "Plantains and others": 456.0,
+      "Sweet potatoes": 412.4,
+      "Yams": 1545.8
+    },
+    "Honduras": {
+      "Cassava": 1065.0,
+      "Maize": 511.4,
+      "Potatoes": 764.2,
+      "Sweet potatoes": 528.5
+    },
+    "Hungary": {
+      "Maize": 188.1,
+      "Potatoes": 355.6,
+      "Sorghum": 168.9,
+      "Soybean": 446.9,
+      "Wheat": 200.5
+    },
+    "Indonesia": {
+      "Cassava": 216.4,
+      "Maize": 345.6,
+      "Potatoes": 744.5,
+      "Rice": 360.4,
+      "Soybean": 633.2,
+      "Sweet potatoes": 316.5
+    },
+    "Iraq": {
+      "Maize": 297.0,
+      "Potatoes": 449.1,
+      "Rice": 621.9,
+      "Sorghum": 534.2,
+      "Wheat": 357.0
+    },
+    "Ireland": {
+      "Wheat": 227.2
+    },
+    "Italy": {
+      "Maize": 259.9,
+      "Potatoes": 546.0,
+      "Rice": 483.4,
+      "Wheat": 322.0
+    },
+    "Jamaica": {
+      "Cassava": 398.5,
+      "Maize": 5543.0,
+      "Plantains and others": 903.0,
+      "Potatoes": 1345.9,
+      "Sweet potatoes": 1227.4,
+      "Yams": 1647.3
+    },
+    "Japan": {
+      "Potatoes": 957.1,
+      "Rice": 2016.8,
+      "Soybean": 1168.8,
+      "Sweet potatoes": 2158.2,
+      "Wheat": 383.9,
+      "Yams": 2027.8
+    },
+    "Kazakhstan": {
+      "Maize": 162.3,
+      "Potatoes": 201.9,
+      "Rice": 186.4,
+      "Soybean": 372.6,
+      "Wheat": 196.1
+    },
+    "Kenya": {
+      "Cassava": 490.3,
+      "Maize": 323.6,
+      "Potatoes": 284.3,
+      "Rice": 542.2,
+      "Sorghum": 345.1,
+      "Soybean": 574.8,
+      "Sweet potatoes": 328.6,
+      "Wheat": 375.9,
+      "Yams": 621.2
+    },
+    "Latvia": {
+      "Potatoes": 184.2,
+      "Wheat": 216.0
+    },
+    "Lebanon": {
+      "Maize": 242.8,
+      "Potatoes": 511.1,
+      "Wheat": 391.4
+    },
+    "Lesotho": {
+      "Maize": 230.2,
+      "Potatoes": 470.2,
+      "Sorghum": 318.6,
+      "Wheat": 366.3
+    },
+    "Lithuania": {
+      "Maize": 201.2,
+      "Potatoes": 286.6,
+      "Wheat": 220.7
+    },
+    "Madagascar": {
+      "Rice": 330.9
+    },
+    "Malaysia": {
+      "Cassava": 272.7,
+      "Rice": 289.6,
+      "Sweet potatoes": 511.5,
+      "Yams": 749.4
+    },
+    "Mali": {
+      "Cassava": 374.8,
+      "Maize": 230.8,
+      "Plantains and others": 972.4,
+      "Potatoes": 871.9,
+      "Rice": 298.3,
+      "Sorghum": 256.0,
+      "Sweet potatoes": 304.8,
+      "Yams": 770.0
+    },
+    "Mauritius": {
+      "Cassava": 633.4,
+      "Potatoes": 703.2,
+      "Sweet potatoes": 757.7
+    },
+    "Mexico": {
+      "Cassava": 196.0,
+      "Maize": 234.6,
+      "Potatoes": 411.6,
+      "Rice": 246.8,
+      "Sorghum": 216.9,
+      "Soybean": 417.4,
+      "Sweet potatoes": 261.4,
+      "Wheat": 245.0
+    },
+    "Morocco": {
+      "Maize": 374.6,
+      "Potatoes": 240.7,
+      "Rice": 344.5,
+      "Sorghum": 386.5,
+      "Wheat": 291.1
+    },
+    "Mozambique": {
+      "Cassava": 409.4,
+      "Maize": 338.1,
+      "Potatoes": 753.7,
+      "Rice": 859.2,
+      "Sweet potatoes": 449.8,
+      "Wheat": 780.0
+    },
+    "Namibia": {
+      "Maize": 341.8,
+      "Wheat": 401.5
+    },
+    "Nepal": {
+      "Maize": 270.6,
+      "Potatoes": 276.5,
+      "Rice": 274.6,
+      "Soybean": 786.8,
+      "Wheat": 294.4
+    },
+    "Netherlands": {
+      "Potatoes": 202.8,
+      "Wheat": 226.7
+    },
+    "New Zealand": {
+      "Maize": 294.1,
+      "Soybean": 219.3,
+      "Wheat": 305.2
+    },
+    "Nicaragua": {
+      "Cassava": 195.8,
+      "Maize": 338.4,
+      "Potatoes": 628.5,
+      "Rice": 449.6,
+      "Sorghum": 348.9,
+      "Soybean": 1094.1
+    },
+    "Niger": {
+      "Cassava": 182.4,
+      "Maize": 338.8,
+      "Potatoes": 608.1,
+      "Rice": 637.6,
+      "Sorghum": 177.2,
+      "Sweet potatoes": 243.7,
+      "Wheat": 312.7
+    },
+    "Norway": {
+      "Potatoes": 395.8,
+      "Wheat": 399.7
+    },
+    "Pakistan": {
+      "Maize": 279.1,
+      "Potatoes": 203.2,
+      "Rice": 673.0,
+      "Wheat": 339.2
+    },
+    "Peru": {
+      "Cassava": 204.0,
+      "Maize": 555.4,
+      "Plantains and others": 200.0,
+      "Potatoes": 295.2,
+      "Rice": 318.6,
+      "Sorghum": 162.5,
+      "Soybean": 648.2,
+      "Sweet potatoes": 206.2,
+      "Wheat": 527.8
+    },
+    "Poland": {
+      "Maize": 175.6,
+      "Potatoes": 134.9,
+      "Wheat": 218.0
+    },
+    "Portugal": {
+      "Maize": 229.3,
+      "Potatoes": 337.0,
+      "Rice": 418.6,
+      "Sweet potatoes": 904.0,
+      "Wheat": 259.9,
+      "Yams": 1524.7
+    },
+    "Qatar": {
+      "Maize": 274.7,
+      "Potatoes": 810.5,
+      "Wheat": 439.6
+    },
+    "Romania": {
+      "Maize": 216.9,
+      "Potatoes": 469.2,
+      "Soybean": 394.0,
+      "Wheat": 208.4
+    },
+    "Rwanda": {
+      "Cassava": 252.1,
+      "Maize": 362.9,
+      "Plantains and others": 204.0,
+      "Potatoes": 297.6,
+      "Rice": 868.0,
+      "Sorghum": 497.1,
+      "Soybean": 695.5,
+      "Sweet potatoes": 205.2,
+      "Wheat": 573.8,
+      "Yams": 205.1
+    },
+    "Saudi Arabia": {
+      "Maize": 1210.7,
+      "Potatoes": 804.7,
+      "Wheat": 659.1
+    },
+    "Senegal": {
+      "Cassava": 257.8,
+      "Maize": 321.6,
+      "Potatoes": 566.5,
+      "Rice": 246.8,
+      "Sorghum": 391.5,
+      "Sweet potatoes": 372.9
+    },
+    "Slovenia": {
+      "Maize": 168.5,
+      "Potatoes": 406.8,
+      "Soybean": 394.3,
+      "Wheat": 193.6
+    },
+    "South Africa": {
+      "Maize": 175.8,
+      "Potatoes": 237.3,
+      "Sorghum": 210.1,
+      "Soybean": 371.6,
+      "Sweet potatoes": 253.9,
+      "Wheat": 294.6
+    },
+    "Spain": {
+      "Maize": 248.7,
+      "Potatoes": 376.5,
+      "Rice": 405.1,
+      "Sorghum": 240.0,
+      "Soybean": 595.5,
+      "Sweet potatoes": 587.2,
+      "Wheat": 260.2
+    },
+    "Sri Lanka": {
+      "Cassava": 265.3,
+      "Maize": 362.7,
+      "Plantains and others": 429.0,
+      "Potatoes": 750.6,
+      "Rice": 291.1,
+      "Soybean": 581.3,
+      "Sweet potatoes": 289.8
+    },
+    "Suriname": {
+      "Cassava": 739.0,
+      "Maize": 1000.6,
+      "Plantains and others": 609.5,
+      "Rice": 185.8,
+      "Soybean": 2705.7,
+      "Sweet potatoes": 859.5
+    },
+    "Sweden": {
+      "Potatoes": 352.8,
+      "Wheat": 225.2
+    },
+    "Switzerland": {
+      "Maize": 334.4,
+      "Potatoes": 548.5,
+      "Rice": 1056.2,
+      "Wheat": 528.2
+    },
+    "Tajikistan": {
+      "Maize": 208.5,
+      "Potatoes": 138.9,
+      "Rice": 450.8,
+      "Wheat": 189.5
+    },
+    "Thailand": {
+      "Cassava": 65.6,
+      "Maize": 252.4,
+      "Potatoes": 383.0,
+      "Rice": 307.4,
+      "Sorghum": 203.6,
+      "Soybean": 564.1
+    },
+    "Tunisia": {
+      "Potatoes": 235.0,
+      "Wheat": 261.8
+    },
+    "Turkey": {
+      "Maize": 186.6,
+      "Potatoes": 250.8,
+      "Rice": 545.8,
+      "Soybean": 435.6,
+      "Wheat": 222.5
+    },
+    "Ukraine": {
+      "Maize": 166.8,
+      "Potatoes": 168.3,
+      "Rice": 325.8,
+      "Soybean": 399.1,
+      "Wheat": 177.3
+    },
+    "United Kingdom": {
+      "Potatoes": 238.7,
+      "Wheat": 236.7
+    },
+    "Uruguay": {
+      "Maize": 206.4,
+      "Potatoes": 608.4,
+      "Rice": 214.7,
+      "Sorghum": 161.7,
+      "Soybean": 338.9,
+      "Sweet potatoes": 666.5,
+      "Wheat": 217.9
+    },
+    "Zambia": {
+      "Cassava": 266.8,
+      "Maize": 177.9,
+      "Potatoes": 712.2,
+      "Rice": 1264.5,
+      "Sorghum": 427.2,
+      "Sweet potatoes": 297.9
+    },
+    "Zimbabwe": {
+      "Maize": 335.2,
+      "Rice": 841.3,
+      "Sorghum": 402.9,
+      "Soybean": 715.4,
+      "Wheat": 421.0
+    }
+  }
+}

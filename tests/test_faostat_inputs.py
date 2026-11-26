@@ -99,3 +99,47 @@ def test_every_configuration_fits_with_missing_inputs():
     for numeric in CONFIGS.values():
         est = build_estimator(numeric, params, seed=0).fit(df[["crop", *numeric]], df["yield_t_ha"])
         assert (est.predict(df[["crop", *numeric]]) > 0).all()
+
+
+# ---------------------------------------------------------------- prix à la production
+
+
+def test_price_table_national_and_world_medians(tmp_path):
+    from agritech_crop_reco.data.prices import build_price_table, load_annual_prices
+
+    base = tmp_path / "faostat"
+    base.mkdir()
+    rows = []
+    for year, fr_price, ke_price in [(2018, 200, 100), (2019, 220, 120), (2017, 999, 999)]:
+        rows.append(
+            f"68,France,Wheat,Producer Price (USD/tonne),{year},USD,{fr_price},Annual value\n"
+        )
+        rows.append(
+            f"114,Kenya,Wheat,Producer Price (USD/tonne),{year},USD,{ke_price},Annual value\n"
+        )
+    rows.append("114,Kenya,Yams,Producer Price (USD/tonne),2020,USD,900,Annual value\n")
+    rows.append(
+        "68,France,Wheat,Producer Price (USD/tonne),2020,USD,5000,July\n"
+    )  # mensuel : ignoré
+    rows.append("223,Türkiye,Wheat,Producer Price (USD/tonne),2020,USD,300,Annual value\n")
+    with zipfile.ZipFile(base / "producer_prices.zip", "w") as z:
+        z.writestr(
+            "P_E_All_Data_(Normalized).csv",
+            "Area Code,Area,Item,Element,Year,Unit,Value,Months\n" + "".join(rows),
+        )
+    annual = load_annual_prices(tmp_path)
+    assert annual["year"].between(2018, 2023).all()  # 2017 hors période
+    table = build_price_table(annual, countries=["France", "Turkey"], crops=["Wheat", "Yams"])
+    assert table["national"]["France"] == {"Wheat": 210.0}  # médiane 200 / 220
+    assert table["national"]["Turkey"] == {"Wheat": 300.0}  # « Türkiye » raccordé
+    assert "Kenya" not in table["national"]  # pays hors modèle : seulement dans le mondial
+    assert table["world"]["Wheat"]["price_usd_t"] == 210.0  # médiane de 210, 110, 300
+    assert table["world"]["Yams"]["n_countries"] == 1
+
+
+def test_price_table_requires_every_crop():
+    from agritech_crop_reco.data.prices import build_price_table
+
+    annual = pd.DataFrame({"country": ["A"], "crop": ["Wheat"], "year": [2020], "price_usd_t": [1]})
+    with pytest.raises(ValueError, match="Aucun prix"):
+        build_price_table(annual, countries=["A"], crops=["Wheat", "Rice"])
