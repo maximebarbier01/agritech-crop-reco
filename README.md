@@ -135,6 +135,22 @@ docker run -d --name front --network agri -p 8501:8501 agritech-crop-front   # -
 poetry export --only front --without-hashes -f requirements.txt -o frontend/requirements.txt
 ```
 
+## Expérience complémentaire – intrants FAOSTAT réels
+
+Test, sans modifier le modèle servi, de l'ajout d'intrants mesurés par pays et par année (FAOSTAT, oct. 2026) : azote, phosphate, potasse et pesticides en kg/ha de terres cultivées, part des terres équipées pour l'irrigation. Même protocole qu'à l'étape 2, mêmes hyperparamètres, règle fixée à l'avance : retenu seulement si le gain dépasse un écart-type.
+
+| Configuration | RMSE CV (t/ha) | R² |
+|---|---|---|
+| Référence (modèle servi) | 4,97 ± 0,44 | 0,59 |
+| + intrants FAOSTAT | 4,71 ± 0,36 | 0,63 |
+
+Gain d'environ 5 % sous le seuil (4,53) : **non retenu**. Détails : `notebooks/05_intrants_faostat.ipynb`, expérience MLflow `agritech-crop-yield-03-intrants-faostat`.
+
+```bash
+python -m agritech_crop_reco.data.faostat               # data/raw/faostat/*.zip -> data/processed/faostat_inputs.csv
+python -m agritech_crop_reco.modeling.experiment_inputs # expérience MLflow 03 (≈ 45 s)
+```
+
 ## Étape 6 – rapport métier
 
 [`reports/rapport_metier.pdf`](reports/rapport_metier.pdf) : résultats, variables clés et recommandations, pour un public non technique. Source : `docs/rapport/` (HTML + CSS) ; les figures sont recalculées depuis le modèle et les données, le PDF est imprimé par Chrome en mode sans affichage :

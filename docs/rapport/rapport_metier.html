@@ -138,6 +138,11 @@
   <h4>Pouvait-on faire mieux en réglant davantage le modèle&nbsp;?</h4>
   <p>Non : multiplier par sept le nombre de réglages testés n'améliore l'erreur que de 0,04 t/ha, une différence plus de dix fois inférieure aux variations naturelles de la mesure. La marge de progrès est dans les <b>données</b> (mesures à la parcelle), pas dans le modèle.</p>
 </div>
+
+<div class="box">
+  <h4>Et avec des données d'intrants réelles&nbsp;?</h4>
+  <p>Nous avons testé l'ajout de mesures officielles FAOSTAT par pays et par année : engrais (azote, phosphate, potasse) et pesticides en kg par hectare, part des terres irriguées. Résultat : l'erreur baisse d'environ <b>5&nbsp;%</b> (R² de 0,59 à 0,63), mais <b>sous le seuil fixé avant l'essai</b> (un gain supérieur aux variations naturelles de la mesure), et sans meilleur classement des cultures. <b>Le modèle en service n'a donc pas été modifié.</b> Ces intrants nationaux évoluent ensemble (un même « niveau d'intensification ») : ils ne disent pas ce que l'engrais ou l'irrigation apportent à <i>une parcelle</i>. C'est la première piste à reprendre avec des données plus récentes (annexe A, figure A5).</p>
+</div>
 </section>
 
 <!-- =============================================================== 5. RECOMMANDATIONS -->
@@ -230,7 +235,7 @@
 <table>
   <tr><th>Limite</th><th>Conséquence</th><th>Piste</th></tr>
   <tr><td>Données <b>nationales et annuelles</b></td><td>Prédictions en ordre de grandeur (erreur de 25 à 60&nbsp;%)</td><td>Collecter des mesures à la parcelle : sol, pluie de la saison, doses à l'hectare</td></tr>
-  <tr><td>Effet de l'engrais et de l'irrigation issu de <b>données simulées</b></td><td>Ordres de grandeur plausibles mais non mesurés sur le terrain</td><td>Valider ces gains avec des essais ou des données d'exploitations clientes</td></tr>
+  <tr><td>Effet de l'engrais et de l'irrigation issu de <b>données simulées</b></td><td>Ordres de grandeur plausibles mais non mesurés sur le terrain</td><td>Valider ces gains avec des essais ou des données d'exploitations clientes ; les intrants nationaux FAOSTAT, testés, ne permettent pas de les isoler</td></tr>
   <tr><td><b>Pas de prix ni de coûts</b></td><td>Classement en tonnes, pas en profit</td><td>Ajouter prix et coûts (partie 6)</td></tr>
   <tr><td>Pas encore de <b>détection automatique de dérive</b></td><td>Une évolution des conditions saisies ou de la qualité des prédictions ne déclenche pas d'alerte</td><td>Les prédictions sont déjà enregistrées (annexe B) : comparer régulièrement leurs conditions aux données d'entraînement et alerter en cas d'écart</td></tr>
   <tr><td>Données <b>1990–2013</b></td><td>Ne reflètent pas les variétés ni le climat récents</td><td>Mettre à jour avec les séries FAO récentes ; le pipeline automatisé le permet</td></tr>
@@ -247,7 +252,7 @@
 <section>
 <h2>Annexe A – Suivi des expériences (MLflow)</h2>
 
-<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Deux expériences ont été menées : la <b>sélection</b> du modèle (19 essais, dont la référence) et son <b>optimisation</b> (30 réglages testés).</p>
+<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Trois expériences ont été menées : la <b>sélection</b> du modèle (19 essais, dont la référence), son <b>optimisation</b> (30 réglages testés), puis le test d'<b>intrants FAOSTAT réels</b> (3 configurations, non retenues).</p>
 
 <figure class="shot">
   <img src="../../reports/mlflow/01_selection.png" alt="MLflow : expérience de sélection">
@@ -267,6 +272,16 @@
 <figure class="shot">
   <img src="../../reports/mlflow/03_run_final.png" alt="MLflow : détail du modèle final">
   <figcaption><b>Figure A4 – Modèle final.</b> Paramètres retenus (<i>best_…</i>) et résultats sur les 21 pays de test (<i>test_rmse</i> 4,67 t/ha, <i>test_mae</i> 2,59 t/ha, <i>test_r2</i> 0,70, <i>test_ranking_spearman</i> 0,79).</figcaption>
+</figure>
+
+<figure class="narrow">
+  <img src="../../reports/figures/05_intrants_decision.png" alt="Expérience intrants FAOSTAT : résultats et seuil de décision">
+  <figcaption><b>Figure A5 – Intrants FAOSTAT réels (expérience 03).</b> Erreur en validation croisée par pays des trois configurations, avec le seuil de décision fixé avant l'essai (ligne rouge) : le gain d'environ 5&nbsp;% ne franchit pas le seuil, la configuration n'est pas retenue.</figcaption>
+</figure>
+
+<figure class="shot">
+  <img src="../../reports/mlflow/04_intrants.png" alt="MLflow : expérience intrants FAOSTAT">
+  <figcaption><b>Figure A6 – L'expérience 03 dans MLflow</b> : les trois configurations et le run « Décision » (seuil, importances, corrélations).</figcaption>
 </figure>
 </section>
 
