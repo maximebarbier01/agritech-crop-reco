@@ -16,7 +16,7 @@
   </div>
   <div class="meta">
     <p><b>Destinataire :</b> Gabriel, Lead Data Scientist · <b>Auteur :</b> Maxime Barbier, Data Scientist ML junior</p>
-    <p><b>Version :</b> 1.1.0 · novembre 2026</p>
+    <p><b>Version :</b> 1.2.0 · novembre 2026</p>
     <p><b>Application :</b> <a href="https://agritech-crop-reco.streamlit.app">agritech-crop-reco.streamlit.app</a> · <b>API :</b> <a href="https://agritech-crop-api-latest.onrender.com/docs">agritech-crop-api-latest.onrender.com/docs</a></p>
     <p><b>Code source :</b> <a href="https://github.com/maximebarbier01/agritech-crop-reco">github.com/maximebarbier01/agritech-crop-reco</a></p>
   </div>
@@ -232,6 +232,7 @@
   <tr><td>Données <b>nationales et annuelles</b></td><td>Prédictions en ordre de grandeur (erreur de 25 à 60&nbsp;%)</td><td>Collecter des mesures à la parcelle : sol, pluie de la saison, doses à l'hectare</td></tr>
   <tr><td>Effet de l'engrais et de l'irrigation issu de <b>données simulées</b></td><td>Ordres de grandeur plausibles mais non mesurés sur le terrain</td><td>Valider ces gains avec des essais ou des données d'exploitations clientes</td></tr>
   <tr><td><b>Pas de prix ni de coûts</b></td><td>Classement en tonnes, pas en profit</td><td>Ajouter prix et coûts (partie 6)</td></tr>
+  <tr><td>Pas encore de <b>détection automatique de dérive</b></td><td>Une évolution des conditions saisies ou de la qualité des prédictions ne déclenche pas d'alerte</td><td>Les prédictions sont déjà enregistrées (annexe B) : comparer régulièrement leurs conditions aux données d'entraînement et alerter en cas d'écart</td></tr>
   <tr><td>Données <b>1990–2013</b></td><td>Ne reflètent pas les variétés ni le climat récents</td><td>Mettre à jour avec les séries FAO récentes ; le pipeline automatisé le permet</td></tr>
   <tr><td>Dix cultures seulement</td><td>Pas d'orge ni de coton, par exemple</td><td>Élargir avec les autres cultures disponibles à la FAO</td></tr>
 </table>
@@ -285,9 +286,11 @@
 
 <p>L'application ne contient aucun calcul : elle interroge l'API, qui seule détient le modèle. On peut ainsi mettre à jour le modèle sans toucher à l'interface, et inversement.</p>
 
+<p><b>Suivi en production.</b> Chaque prédiction servie est enregistrée dans une base dédiée (conditions saisies, culture, rendement prédit, avertissements, versions du modèle et de l'API, temps de réponse), sans aucune donnée personnelle. Une synthèse est consultable à tout moment (<i>/monitoring/summary</i> : nombre d'appels, temps de réponse, part des demandes hors du domaine connu, cultures les plus demandées et recommandées). L'enregistrement se fait après la réponse : une panne de la base ne bloque jamais une prédiction.</p>
+
 <table>
   <tr><th>Automatisme (GitHub Actions)</th><th>Déclenchement</th><th>Ce qu'il fait</th></tr>
-  <tr><td><b>Intégration continue</b></td><td>Chaque proposition de modification</td><td>Vérifie la qualité du code, lance 68 tests automatiques, construit et teste l'API et l'application dans leurs conteneurs</td></tr>
+  <tr><td><b>Intégration continue</b></td><td>Chaque proposition de modification</td><td>Vérifie la qualité du code, lance 75 tests automatiques, construit et teste l'API et l'application dans leurs conteneurs</td></tr>
   <tr><td><b>Déploiement continu</b></td><td>Chaque version validée</td><td>Rejoue tous les contrôles, publie l'image de l'API, la redéploie et vérifie qu'elle répond en ligne</td></tr>
   <tr><td><b>Pipeline d'entraînement</b></td><td>À la demande, ou si les données ou le modèle changent</td><td>Prépare les données, réentraîne et évalue le modèle, l'enregistre dans MLflow, et <b>échoue si la performance se dégrade</b> de plus de 5&nbsp;%</td></tr>
 </table>
