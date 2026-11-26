@@ -74,6 +74,7 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 |---|---|---|
 | `GET /health` | – | état du service et version du modèle |
 | `GET /metadata` | – | cultures, plages d'entraînement, niveaux d'intensification (utilisés par l'interface) |
+| `GET /monitoring/summary` | – | synthèse des prédictions servies : volume par endpoint, temps de réponse, part hors domaine, cultures (503 si l'enregistrement est désactivé) |
 | `POST /predict` | culture + conditions de la parcelle | rendement prédit (t/ha) |
 | `POST /recommend` | conditions de la parcelle | les 10 cultures classées par rendement décroissant |
 
@@ -82,6 +83,7 @@ Conditions : `avg_temp_c`, `rainfall_mm`, `pesticides_tonnes` (obligatoires), `f
 - **Rendement prédit** = rendement du modèle × facteur pratiques `(1 + g_E·E + g_I·I) / (1 + 0,5·g_E + 0,5·g_I)` : une parcelle aux pratiques moyennes garde la prédiction du modèle ; engrais + irrigation ≈ +29 %, aucune des deux ≈ −29 %.
 - **Validation** : valeur physiquement impossible -> erreur 422 ; valeur plausible mais hors de la plage d'entraînement -> réponse 200 avec un avertissement (`warnings`).
 - **Modèle servi** : `models/` (versionné, < 1 Mo) : `yield_model.joblib`, `model_card.json`, `practice_gains.json`.
+- **Suivi en production** : chaque appel à `/predict` et `/recommend` est journalisé (une ligne JSON dans les logs) et, si `PREDICTION_DB_URL` est définie, enregistré dans une base dédiée (Neon `agritech_api`, table `predictions`) : conditions, culture, rendement prédit, avertissements, versions du modèle et de l'API, temps de réponse. Aucune donnée personnelle. L'écriture a lieu après la réponse et une panne de base ne fait jamais échouer une prédiction.
 
 ```bash
 uvicorn api.main:app --reload                                   # local -> http://127.0.0.1:8000/docs
