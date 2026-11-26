@@ -39,6 +39,7 @@ models/*
 !models/yield_model.joblib
 !models/model_card.json
 !models/practice_gains.json
+!models/crop_prices.json
 
 # Notebooks
 .ipynb_checkpoints/

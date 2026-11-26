@@ -29,6 +29,7 @@ from api.schemas import (
     ParcelConditions,
     PredictRequest,
     PredictResponse,
+    RecommendRequest,
     RecommendResponse,
 )
 
@@ -84,6 +85,18 @@ def _conditions(payload: ParcelConditions) -> Conditions:
     return Conditions(**{k: v for k, v in payload.model_dump().items() if k in fields})
 
 
+def _custom_prices(payload) -> dict[str, float] | None:
+    """Prix saisis : clés de l'énumération Crop -> noms de cultures du modèle."""
+    if not payload.prices_usd_t:
+        return None
+    return {crop.value: price for crop, price in payload.prices_usd_t.items()}
+
+
+def _unprocessable(exc: ValueError) -> HTTPException:
+    # Pays inconnu, etc. : erreur de saisie (422), comme les erreurs de validation Pydantic
+    return HTTPException(422, str(exc))
+
+
 def _track(
     request: Request,
     background: BackgroundTasks,
@@ -118,10 +131,15 @@ def health(request: Request) -> HealthResponse:
 def metadata(request: Request) -> MetadataResponse:
     """Cultures, plages d'entraînement et niveaux d'intensification (pour l'interface)."""
     service = _service(request)
+    price_info = None
+    if service.prices:
+        price_info = {key: service.prices[key] for key in ("source", "period", "unit", "world")}
     return MetadataResponse(
         crops=service.crops,
         training_ranges=service.training_ranges,
         pesticide_levels=service.pesticide_levels,
+        countries=service.countries,
+        price_info=price_info,
         model_version=service.version,
     )
 
@@ -134,7 +152,12 @@ def predict(
     started = time.perf_counter()
     service = _service(request)
     conditions = _conditions(payload)
-    result = service.predict(payload.crop.value, conditions)
+    try:
+        result = service.predict(
+            payload.crop.value, conditions, payload.country, _custom_prices(payload)
+        )
+    except ValueError as exc:
+        raise _unprocessable(exc) from exc
     warnings = service.warnings(conditions)
     _track(
         request,
@@ -145,6 +168,8 @@ def predict(
         crop=result["crop"],
         top_crop=result["crop"],
         yield_t_ha=result["yield_t_ha"],
+        revenue_usd_ha=result["revenue_usd_ha"],
+        country=payload.country,
         warnings=warnings,
     )
     return PredictResponse(**result, warnings=warnings, model_version=service.version)
@@ -152,13 +177,18 @@ def predict(
 
 @app.post("/recommend", response_model=RecommendResponse, tags=["recommandation"])
 def recommend(
-    payload: ParcelConditions, request: Request, background: BackgroundTasks
+    payload: RecommendRequest, request: Request, background: BackgroundTasks
 ) -> RecommendResponse:
-    """Toutes les cultures, classées par rendement prédit décroissant pour ces conditions."""
+    """Toutes les cultures, classées par chiffre d'affaires estimé (défaut) ou par rendement."""
     started = time.perf_counter()
     service = _service(request)
     conditions = _conditions(payload)
-    ranking = service.recommend(conditions)
+    try:
+        ranking = service.recommend(
+            conditions, payload.country, _custom_prices(payload), payload.rank_by
+        )
+    except ValueError as exc:
+        raise _unprocessable(exc) from exc
     warnings = service.warnings(conditions)
     _track(
         request,
@@ -168,10 +198,19 @@ def recommend(
         started,
         top_crop=ranking[0]["crop"],
         yield_t_ha=ranking[0]["yield_t_ha"],
+        revenue_usd_ha=ranking[0]["revenue_usd_ha"],
+        country=payload.country,
+        rank_by=payload.rank_by,
         ranking=[[r["crop"], round(r["yield_t_ha"], 3)] for r in ranking],
         warnings=warnings,
     )
-    return RecommendResponse(ranking=ranking, warnings=warnings, model_version=service.version)
+    return RecommendResponse(
+        ranking=ranking,
+        rank_by=payload.rank_by,
+        country=payload.country,
+        warnings=warnings,
+        model_version=service.version,
+    )
 
 
 @app.get("/monitoring/summary", response_model=MonitoringSummary, tags=["service"])

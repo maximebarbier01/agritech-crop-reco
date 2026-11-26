@@ -96,3 +96,28 @@ def test_monitoring_returns_503_when_disabled(monkeypatch):
     with TestClient(app) as client:
         assert client.post("/predict", json={**PARCEL, "crop": "Wheat"}).status_code == 200
         assert client.get("/monitoring/summary").status_code == 503
+
+
+def test_old_table_gets_new_columns(tmp_path):
+    """Table créée en v1.2.0 (sans pays ni chiffre d'affaires) : colonnes ajoutées au démarrage."""
+    from sqlalchemy import create_engine, inspect, text
+
+    url = f"sqlite:///{tmp_path / 'ancienne.db'}"
+    with create_engine(url).begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE predictions (id INTEGER PRIMARY KEY, created_at TIMESTAMP NOT NULL, "
+                "endpoint VARCHAR(20) NOT NULL, crop VARCHAR(40), top_crop VARCHAR(40), "
+                "yield_t_ha FLOAT, avg_temp_c FLOAT NOT NULL, rainfall_mm FLOAT NOT NULL, "
+                "pesticides_tonnes FLOAT NOT NULL, fertilizer_used BOOLEAN, "
+                "irrigation_used BOOLEAN, "
+                "n_warnings INTEGER NOT NULL, warnings JSON, ranking JSON, "
+                "model_version VARCHAR(120) NOT NULL, api_version VARCHAR(20) NOT NULL, "
+                "latency_ms FLOAT NOT NULL)"
+            )
+        )
+    store = PredictionStore(url)
+    columns = {c["name"] for c in inspect(store.engine).get_columns("predictions")}
+    assert {"revenue_usd_ha", "country", "rank_by"} <= columns
+    assert store.record(_event(country="France", rank_by=None, revenue_usd_ha=650.0))
+    PredictionStore(url)  # deuxième démarrage : rien à ajouter, pas d'erreur

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PositiveFloat
 
 
 class Crop(StrEnum):
@@ -58,7 +59,20 @@ class ParcelConditions(BaseModel):
     )
 
 
-class PredictRequest(ParcelConditions):
+class PricingOptions(BaseModel):
+    """Prix de vente utilisés pour estimer le chiffre d'affaires (le pays ne sert qu'au prix)."""
+
+    country: str | None = Field(
+        default=None,
+        description="Pays de l'exploitation : prix national FAOSTAT quand il existe "
+        "(sinon médiane mondiale). Voir /metadata pour la liste.",
+    )
+    prices_usd_t: dict[Crop, PositiveFloat] | None = Field(
+        default=None, description="Prix de vente saisis par l'utilisateur (USD/t), prioritaires"
+    )
+
+
+class PredictRequest(ParcelConditions, PricingOptions):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -68,6 +82,7 @@ class PredictRequest(ParcelConditions):
                 "pesticides_tonnes": 12000,
                 "fertilizer_used": True,
                 "irrigation_used": False,
+                "country": "France",
             }
         }
     )
@@ -75,11 +90,38 @@ class PredictRequest(ParcelConditions):
     crop: Crop
 
 
+class RecommendRequest(ParcelConditions, PricingOptions):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "avg_temp_c": 18.5,
+                "rainfall_mm": 900,
+                "pesticides_tonnes": 12000,
+                "country": "France",
+                "rank_by": "revenue",
+            }
+        }
+    )
+
+    rank_by: Literal["revenue", "yield"] = Field(
+        default="revenue",
+        description="Classement par chiffre d'affaires estimé (revenue) ou par rendement (yield)",
+    )
+
+
 class CropYield(BaseModel):
     crop: str
     yield_t_ha: float = Field(description="Rendement prédit, pratiques comprises (t/ha)")
     yield_base_t_ha: float = Field(description="Rendement du modèle, pratiques moyennes (t/ha)")
     practice_factor: float = Field(description="Ajustement engrais / irrigation (1 = moyen)")
+    price_usd_t: float | None = Field(default=None, description="Prix de vente utilisé (USD/t)")
+    price_source: Literal["saisi", "national", "mondial"] | None = Field(
+        default=None, description="Origine du prix : saisi, national (FAOSTAT) ou mondial"
+    )
+    revenue_usd_ha: float | None = Field(
+        default=None,
+        description="Chiffre d'affaires estimé (USD/ha) = rendement × prix, hors coûts",
+    )
 
 
 class PredictResponse(CropYield):
@@ -93,11 +135,14 @@ class RankedCrop(CropYield):
 
 class RecommendResponse(BaseModel):
     ranking: list[RankedCrop]
+    rank_by: Literal["revenue", "yield"]
+    country: str | None
     warnings: list[str]
     model_version: str
     note: str = Field(
-        default="Classement par rendement physique (t/ha) : il ne tient pas compte des prix "
-        "de vente, qui varient fortement d'une culture à l'autre."
+        default="Chiffre d'affaires estimé = rendement prédit × prix de vente (FAOSTAT, "
+        "médiane 2018-2023, dollars courants) : il ne tient pas compte des coûts de "
+        "production, ce n'est pas un profit."
     )
 
 
@@ -115,6 +160,10 @@ class MetadataResponse(BaseModel):
         description="Plage [min, max] de chaque condition vue à l'entraînement"
     )
     pesticide_levels: list[PesticideLevel]
+    countries: list[str] = Field(description="Pays disposant d'au moins un prix national")
+    price_info: dict | None = Field(
+        default=None, description="Source, période et prix mondiaux par culture (USD/t)"
+    )
     model_version: str
 
 

@@ -60,9 +60,38 @@ def test_recommend_returns_sorted_ranking(client):
     assert r.status_code == 200
     ranking = r.json()["ranking"]
     assert len(ranking) == 10
-    yields = [c["yield_t_ha"] for c in ranking]
+    revenues = [c["revenue_usd_ha"] for c in ranking]  # défaut : chiffre d'affaires
+    assert revenues == sorted(revenues, reverse=True)
+    assert ranking[0]["rank"] == 1 and r.json()["rank_by"] == "revenue"
+
+
+def test_recommend_by_yield_on_request(client):
+    r = client.post("/recommend", json={**PARCEL, "rank_by": "yield"})
+    yields = [c["yield_t_ha"] for c in r.json()["ranking"]]
     assert yields == sorted(yields, reverse=True)
-    assert ranking[0]["rank"] == 1
+
+
+def test_country_prices_and_sources(client):
+    countries = client.get("/metadata").json()["countries"]
+    assert "France" in countries
+    ranking = client.post("/recommend", json={**PARCEL, "country": "France"}).json()["ranking"]
+    sources = {c["crop"]: c["price_source"] for c in ranking}
+    assert sources["Wheat"] == "national"  # prix français connu
+    assert sources["Yams"] == "mondial"  # pas de prix français pour l'igname
+
+
+def test_custom_price_overrides_and_is_validated(client):
+    body = {**PARCEL, "crop": "Wheat", "prices_usd_t": {"Wheat": 500}}
+    result = client.post("/predict", json=body).json()
+    assert result["price_source"] == "saisi"
+    assert result["revenue_usd_ha"] == pytest.approx(result["yield_t_ha"] * 500)
+    bad = {**PARCEL, "crop": "Wheat", "prices_usd_t": {"Wheat": -1}}
+    assert client.post("/predict", json=bad).status_code == 422
+
+
+def test_unknown_country_returns_422(client):
+    r = client.post("/recommend", json={**PARCEL, "country": "Atlantide"})
+    assert r.status_code == 422 and "Atlantide" in r.json()["detail"]
 
 
 def test_recommend_ignores_crop_field_if_sent(client):

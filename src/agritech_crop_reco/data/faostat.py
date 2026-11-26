@@ -58,15 +58,12 @@ INPUT_SERIES = {
 INPUT_COLS = list(INPUT_SERIES)
 
 
-def read_faostat_zip(path: Path) -> pd.DataFrame:
+def read_faostat_zip(path: Path, extra_columns: tuple[str, ...] = ()) -> pd.DataFrame:
     """Lit le CSV principal d'un export FAOSTAT (format « Normalized »), pays seulement."""
+    columns = ["Area Code", "Area", "Item", "Element", "Year", "Unit", "Value", *extra_columns]
     with zipfile.ZipFile(path) as archive:
         (member,) = [m for m in archive.namelist() if m.endswith("All_Data_(Normalized).csv")]
-        df = pd.read_csv(
-            archive.open(member),
-            encoding="utf-8",
-            usecols=["Area Code", "Area", "Item", "Element", "Year", "Unit", "Value"],
-        )
+        df = pd.read_csv(archive.open(member), encoding="utf-8", usecols=columns, low_memory=False)
     return df[df["Area Code"] < AGGREGATE_AREA_CODE]
 
 
