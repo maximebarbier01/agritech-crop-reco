@@ -3,6 +3,11 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions [SemVer](https://semver.org/lang/fr/).
 Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbier01/agritech-crop-api:X.Y.Z`.
 
+## [1.3.1] – 2026-11-26
+
+### Documentation
+- Rapport : captures de l'application v1.3.0 (chiffre d'affaires estimé, origine du prix, classement par chiffre d'affaires) ; numérotation des figures corrigée (les captures deviennent les figures 9 et 10).
+
 ## [1.3.0] – 2026-11-26
 
 ### Ajouté
@@ -62,6 +67,7 @@ Première version déployée.
 - **Interface Streamlit** : prédiction pour une culture et classement des 10 cultures (graphique + tableau) ; curseurs bornés au domaine appris ; niveau d'intensification agricole.
 - **CI/CD et MLOps** : `ci.yml` (qualité, tests, images Docker), `cd.yml` (Docker Hub puis Render), `train.yml` (pipeline prétraitement -> entraînement -> évaluation -> garde-fou, suivi MLflow sur Neon).
 
+[1.3.1]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/maximebarbier01/agritech-crop-reco/compare/v1.0.1...v1.1.0
