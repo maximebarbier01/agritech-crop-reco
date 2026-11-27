@@ -53,3 +53,6 @@ Zone.Identifier
 
 # Captures d'écran avant recadrage (contiennent la barre du navigateur)
 reports/_captures_originales/
+
+# Journaux d’entraînement CatBoost (désactivés dans le code, garde-fou)
+catboost_info/

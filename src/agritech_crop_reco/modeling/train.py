@@ -1,14 +1,18 @@
 """Entraînement du modèle de rendement, suivi dans MLflow.
 
 Deux expériences MLflow distinctes :
-1. ``<prefix>-01-selection`` : référence naïve + 3 modèles × 2 cibles × 3 variantes
-   pesticides, évalués en validation croisée **par pays** (GroupKFold) sur le jeu
-   d'entraînement uniquement.
+1. ``<prefix>-01-selection`` : référence naïve + 5 modèles (Ridge, Random Forest,
+   HistGradientBoosting, XGBoost, CatBoost) × 2 cibles × 3 variantes pesticides,
+   évalués avec leurs réglages par défaut en validation croisée **par pays**
+   (GroupKFold) sur le jeu d'entraînement uniquement.
    Règle de choix : voir ``select_config`` (égalité statistique sur le RMSE, puis
    meilleur classement des cultures parmi les modèles dont ce classement varie).
-2. ``<prefix>-02-optimisation`` : RandomizedSearchCV sur la configuration retenue
-   (un run enfant par combinaison testée), puis **une seule** évaluation sur les pays
-   de test figés, et sauvegarde du modèle final (.joblib + fiche JSON).
+2. ``<prefix>-02-optimisation`` : chacune des 3 familles de boosting (sa meilleure
+   variante à l'étape 1) est optimisée par **deux méthodes à budget égal** :
+   RandomizedSearchCV (tirage au hasard) et Optuna (TPE, qui apprend des essais
+   précédents). Les 6 candidats optimisés sont départagés par la **même règle**
+   ``select_config`` ; seul le gagnant est évalué, **une seule fois**, sur les pays de
+   test figés, puis sauvegardé (.joblib + fiche JSON).
 
 Usage :
     python -m agritech_crop_reco.modeling.train --stage all
@@ -30,14 +34,16 @@ from pathlib import Path
 import joblib
 import mlflow
 import numpy as np
+import optuna
 import pandas as pd
-from scipy.stats import loguniform, randint
+from scipy.stats import loguniform, randint, uniform
 from sklearn.base import clone
 from sklearn.model_selection import GroupKFold, RandomizedSearchCV
 
 from agritech_crop_reco.config import PROJECT_ROOT, Settings, load_settings
 from agritech_crop_reco.data.merge import CONSOLIDATED_FILE, GAIN_COLS
 from agritech_crop_reco.modeling.features import (
+    BOOSTING,
     MODELS,
     PESTICIDE_VARIANTS,
     TARGET,
@@ -50,7 +56,11 @@ from agritech_crop_reco.modeling.split import load_test_countries, split_train_t
 from agritech_crop_reco.serving import GAINS_FILE, MODEL_CARD_FILE, MODEL_FILE
 
 N_FOLDS = 5
+# Budget identique pour les deux méthodes : la comparaison porte sur la façon de
+# chercher, pas sur le nombre d'essais.
 N_ITER_SEARCH = 30
+N_TRIALS_OPTUNA = 30
+SEARCH_METHODS = ("random_search", "optuna")
 SKOPS_TRUSTED_TYPES = ["sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"]
 N_PROBE = 300  # parcelles fictives pour mesurer si le classement des cultures varie
 # Niveaux d'intensification affichés dans l'interface (quantiles des pesticides à l'entraînement)
@@ -63,23 +73,56 @@ PESTICIDE_LEVELS = {
 }
 REPORTS_DIR = PROJECT_ROOT / "reports"
 SELECTION_FILE = REPORTS_DIR / "selection_results.csv"
+OPTIMISATION_FILE = REPORTS_DIR / "optimisation_results.csv"
 
-PARAM_SPACES = {
-    "ridge": {"alpha": loguniform(1e-3, 1e3)},
-    "random_forest": {
-        "n_estimators": randint(200, 700),
-        "max_depth": [None, 10, 20, 30],
-        "min_samples_leaf": randint(1, 15),
-        "max_features": [1.0, 0.5, "sqrt"],
-    },
+# Espaces de recherche, communs aux deux méthodes : (type, bas, haut), bornes incluses.
+# « log » = tirage uniforme sur l'échelle logarithmique (taux d'apprentissage, régularisation).
+# HistGradientBoosting : mêmes plages qu'en v1.0 (le tirage au hasard est reproduit à l'identique).
+SEARCH_SPACES = {
     "hist_gradient_boosting": {
-        "learning_rate": loguniform(0.01, 0.3),
-        "max_iter": randint(100, 800),
-        "max_leaf_nodes": randint(8, 64),
-        "min_samples_leaf": randint(5, 60),
-        "l2_regularization": loguniform(1e-4, 10),
+        "learning_rate": ("log", 0.01, 0.3),
+        "max_iter": ("int", 100, 799),
+        "max_leaf_nodes": ("int", 8, 63),
+        "min_samples_leaf": ("int", 5, 59),
+        "l2_regularization": ("log", 1e-4, 10),
+    },
+    "xgboost": {
+        "n_estimators": ("int", 100, 800),
+        "learning_rate": ("log", 0.01, 0.3),
+        "max_depth": ("int", 3, 10),
+        "min_child_weight": ("log", 1, 20),
+        "subsample": ("float", 0.6, 1.0),
+        "colsample_bytree": ("float", 0.6, 1.0),
+        "reg_lambda": ("log", 1e-3, 10),
+    },
+    "catboost": {
+        "iterations": ("int", 200, 1000),
+        "learning_rate": ("log", 0.01, 0.3),
+        "depth": ("int", 4, 8),
+        "l2_leaf_reg": ("log", 1, 10),
     },
 }
+
+
+def scipy_space(name: str) -> dict:
+    """Espace de recherche au format RandomizedSearchCV (lois scipy)."""
+    laws = {
+        "log": lambda lo, hi: loguniform(lo, hi),
+        "int": lambda lo, hi: randint(lo, hi + 1),
+        "float": lambda lo, hi: uniform(lo, hi - lo),
+    }
+    return {k: laws[kind](lo, hi) for k, (kind, lo, hi) in SEARCH_SPACES[name].items()}
+
+
+def suggest_params(trial: optuna.Trial, name: str) -> dict:
+    """Même espace de recherche, proposé par Optuna."""
+    params = {}
+    for k, (kind, lo, hi) in SEARCH_SPACES[name].items():
+        if kind == "int":
+            params[k] = trial.suggest_int(k, lo, hi)
+        else:
+            params[k] = trial.suggest_float(k, lo, hi, log=kind == "log")
+    return params
 
 
 # --------------------------------------------------------------------------- utilitaires
@@ -284,71 +327,187 @@ def _param_prefix(target: str) -> str:
     return "regressor__model__" if target == "log" else "model__"
 
 
-def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
-    if not SELECTION_FILE.exists():
-        raise FileNotFoundError(f"{SELECTION_FILE} absent : lancer d'abord --stage selection")
-    selection = pd.read_csv(SELECTION_FILE)
-    best = selection[selection["selected"]].iloc[0]
-    name, target, pesticides = best["model"], best["target"], best["pesticides"]
-    features = feature_columns(pesticides)
+def _plain(value):
+    """Valeur numpy -> valeur Python (JSON, MLflow)."""
+    return value.item() if isinstance(value, np.generic) else value
 
-    train, test, dataset_sha = load_train_test(settings)
-    prefix = _param_prefix(target)
-    space = {prefix + k: v for k, v in PARAM_SPACES[name].items()}
+
+def family_starting_points(selection: pd.DataFrame) -> pd.DataFrame:
+    """Pour chaque famille de boosting, sa variante (cible, pesticides) retenue à l'étape 1
+    par la même règle ``select_config`` appliquée à cette seule famille."""
+    rows = []
+    for name in BOOSTING:
+        family = selection[selection["model"] == name]
+        if family.empty:
+            raise ValueError(f"Aucun résultat de sélection pour {name}")
+        rows.append(family.loc[select_config(family)])
+    return pd.DataFrame(rows).reset_index(drop=True)
+
+
+def random_search(estimator, name: str, prefix: str, train: pd.DataFrame, features, seed: int):
+    """RandomizedSearchCV : essais tirés au hasard, indépendants les uns des autres."""
     search = RandomizedSearchCV(
-        build_model(name, pesticides, target, settings.seed),
-        space,
+        estimator,
+        {prefix + k: v for k, v in scipy_space(name).items()},
         n_iter=N_ITER_SEARCH,
         cv=GroupKFold(n_splits=N_FOLDS),
         scoring="neg_root_mean_squared_error",
-        random_state=settings.seed,
-        n_jobs=1 if name == "random_forest" else -1,  # la forêt parallélise déjà ses arbres
-        refit=True,
+        random_state=seed,
+        n_jobs=-1 if name == "hist_gradient_boosting" else 1,  # XGBoost/CatBoost : 4 fils
+        refit=False,
     )
+    search.fit(train[features], train[TARGET], groups=train["country"])
+    cv = pd.DataFrame(search.cv_results_)
+    trials = [
+        {
+            "params": {
+                k.removeprefix("param_" + prefix): _plain(v)
+                for k, v in row.items()
+                if k.startswith("param_")
+            },
+            "cv_rmse_mean": -row["mean_test_score"],
+            "cv_rmse_std": row["std_test_score"],
+        }
+        for _, row in cv.iterrows()
+    ]
+    best = {k.removeprefix(prefix): _plain(v) for k, v in search.best_params_.items()}
+    return best, trials
+
+
+def optuna_search(estimator, name: str, prefix: str, train: pd.DataFrame, features, seed: int):
+    """Optuna (échantillonneur TPE) : chaque essai est choisi d'après les précédents."""
+    trials = []
+
+    def objective(trial: optuna.Trial) -> float:
+        params = suggest_params(trial, name)
+        model = clone(estimator).set_params(**{prefix + k: v for k, v in params.items()})
+        folds = cross_validate(model, train, features)
+        rmse, std = float(folds["rmse"].mean()), float(folds["rmse"].std())
+        trials.append({"params": params, "cv_rmse_mean": rmse, "cv_rmse_std": std})
+        return rmse
+
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=seed))
+    study.optimize(objective, n_trials=N_TRIALS_OPTUNA)
+    return study.best_params, trials
+
+
+def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
+    if not SELECTION_FILE.exists():
+        raise FileNotFoundError(f"{SELECTION_FILE} absent : lancer d'abord --stage selection")
+    starts = family_starting_points(pd.read_csv(SELECTION_FILE))
+    train, test, dataset_sha = load_train_test(settings)
+    probe = probe_conditions(train, settings.seed)
+    searches = {"random_search": random_search, "optuna": optuna_search}
+    budgets = {"random_search": N_ITER_SEARCH, "optuna": N_TRIALS_OPTUNA}
 
     _setup_mlflow(settings, "02-optimisation")
-    run_name = (
-        f"{name} | cible={target} | pesticides={pesticides} | RandomizedSearch({N_ITER_SEARCH})"
-    )
-    with mlflow.start_run(run_name=run_name) as parent:
-        mlflow.set_tags(_common_tags(dataset_sha, "optimisation"))
-        start = time.perf_counter()
-        search.fit(train[features], train[TARGET], groups=train["country"])
-        duration = time.perf_counter() - start
+    candidates, fitted = [], {}
+    for _, start_row in starts.iterrows():
+        name, target, pesticides = start_row["model"], start_row["target"], start_row["pesticides"]
+        features = feature_columns(pesticides)
+        prefix = _param_prefix(target)
+        base = build_model(name, pesticides, target, settings.seed)
+        for method in SEARCH_METHODS:
+            label = (
+                f"{name} | cible={target} | pesticides={pesticides} | "
+                f"{method}({budgets[method]})"
+            )
+            with mlflow.start_run(run_name=label):
+                mlflow.set_tags(
+                    {**_common_tags(dataset_sha, "optimisation"), "search_method": method}
+                )
+                start = time.perf_counter()
+                best_params, trials = searches[method](
+                    base, name, prefix, train, features, settings.seed
+                )
+                duration = time.perf_counter() - start
+                for i, trial in enumerate(trials):
+                    with mlflow.start_run(run_name=f"essai {i:02d}", nested=True):
+                        mlflow.set_tags({"stage": "optimisation-essai", "search_method": method})
+                        mlflow.log_params(trial["params"])
+                        mlflow.log_metrics(
+                            {
+                                "cv_rmse_mean": trial["cv_rmse_mean"],
+                                "cv_rmse_std": trial["cv_rmse_std"],
+                            }
+                        )
 
-        cv = pd.DataFrame(search.cv_results_)
-        for i, row in cv.iterrows():
-            with mlflow.start_run(run_name=f"essai {i:02d}", nested=True):
-                mlflow.set_tag("stage", "optimisation-essai")
+                # Le meilleur réglage est réévalué avec toutes les métriques (mêmes plis)
+                model = clone(base).set_params(**{prefix + k: v for k, v in best_params.items()})
+                folds = cross_validate(model, train, features)
+                summary = {f"cv_{k}_mean": v for k, v in folds.mean().items()}
+                summary |= {f"cv_{k}_std": v for k, v in folds.std().items()}
+                model.fit(train[features], train[TARGET])
+                summary["ranking_variety"] = ranking_variety(model, features, probe)
                 mlflow.log_params(
                     {
-                        k.removeprefix("param_" + prefix): v
-                        for k, v in row.items()
-                        if k.startswith("param_")
+                        "model": name,
+                        "target": target,
+                        "pesticides": pesticides,
+                        "search_method": method,
+                        "n_trials": budgets[method],
+                        "cv": f"GroupKFold({N_FOLDS}) par pays",
+                        **{f"best_{k}": v for k, v in best_params.items()},
                     }
                 )
                 mlflow.log_metrics(
-                    {"cv_rmse_mean": -row["mean_test_score"], "cv_rmse_std": row["std_test_score"]}
+                    {
+                        **summary,
+                        "cv_rmse_default": float(start_row["cv_rmse_mean"]),
+                        "search_duration_s": duration,
+                    }
                 )
+            key = len(candidates)
+            fitted[key] = (model, features)
+            candidates.append(
+                {
+                    "model": name,
+                    "search_method": method,
+                    "target": target,
+                    "pesticides": pesticides,
+                    "n_trials": budgets[method],
+                    "cv_rmse_default": float(start_row["cv_rmse_mean"]),
+                    **summary,
+                    "search_duration_s": duration,
+                    "best_params": json.dumps(best_params),
+                }
+            )
+            print(
+                f"{label:<75} RMSE {summary['cv_rmse_mean']:.3f} ± {summary['cv_rmse_std']:.3f}"
+                f"  rang {summary['cv_ranking_spearman_mean']:.3f}"
+                f"  variété {summary['ranking_variety']:.0f}  ({duration:.0f} s)"
+            )
 
-        best_params = {k.removeprefix(prefix): v for k, v in search.best_params_.items()}
-        cv_rmse_default = float(best["cv_rmse_mean"])
-        cv_rmse_tuned = float(-search.best_score_)
+    # Même règle qu'à l'étape 1, appliquée aux 6 candidats optimisés
+    results = pd.DataFrame(candidates)
+    chosen_idx = select_config(results)
+    results["selected"] = results.index == chosen_idx
+    REPORTS_DIR.mkdir(exist_ok=True)
+    results.sort_values("cv_rmse_mean").to_csv(OPTIMISATION_FILE, index=False)
+    chosen = results.loc[chosen_idx]
+    final_model, features = fitted[chosen_idx]
+    name, target, pesticides = chosen["model"], chosen["target"], chosen["pesticides"]
+    best_params = json.loads(chosen["best_params"])
 
-        # Évaluation unique sur les pays de test figés
-        test_metrics = all_metrics(test, test[TARGET], search.predict(test[features]))
-        baseline = build_model("baseline", "none", "raw", settings.seed).fit(
-            train[["crop"]], train[TARGET]
-        )
-        baseline_test = all_metrics(test, test[TARGET], baseline.predict(test[["crop"]]))
+    # Évaluation unique du gagnant sur les pays de test figés
+    test_metrics = all_metrics(test, test[TARGET], final_model.predict(test[features]))
+    baseline = build_model("baseline", "none", "raw", settings.seed).fit(
+        train[["crop"]], train[TARGET]
+    )
+    baseline_test = all_metrics(test, test[TARGET], baseline.predict(test[["crop"]]))
 
+    run_name = f"Décision : {name} | {chosen['search_method']} (règle select_config)"
+    with mlflow.start_run(run_name=run_name) as decision:
+        mlflow.set_tags({**_common_tags(dataset_sha, "optimisation"), "configuration": "decision"})
         mlflow.log_params(
             {
                 "model": name,
                 "target": target,
                 "pesticides": pesticides,
+                "search_method": chosen["search_method"],
+                "n_trials": int(chosen["n_trials"]),
                 "features": ",".join(features),
-                "n_iter": N_ITER_SEARCH,
                 "cv": f"GroupKFold({N_FOLDS}) par pays",
                 "seed": settings.seed,
                 "n_train_rows": len(train),
@@ -358,28 +517,42 @@ def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
         )
         mlflow.log_metrics(
             {
-                "cv_rmse_default": cv_rmse_default,
-                "cv_rmse_tuned": cv_rmse_tuned,
-                "search_duration_s": duration,
+                "cv_rmse_default": float(chosen["cv_rmse_default"]),
+                "cv_rmse_tuned": float(chosen["cv_rmse_mean"]),
                 **{f"test_{k}": v for k, v in test_metrics.items()},
                 **{f"baseline_test_{k}": v for k, v in baseline_test.items()},
             }
+        )
+        mlflow.log_dict(
+            results.drop(columns="best_params").round(4).to_dict("records"),
+            "candidats_optimises.json",
         )
 
         card = {
             "trained_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "git_sha": _git_sha(),
             "dataset_sha256": dataset_sha,
-            "mlflow_run_id": parent.info.run_id,
+            "mlflow_run_id": decision.info.run_id,
             "model": name,
             "target": target,
             "pesticides": pesticides,
             "features": features,
-            "best_params": {
-                k: (v.item() if isinstance(v, np.generic) else v) for k, v in best_params.items()
-            },
-            "cv_rmse_default": cv_rmse_default,
-            "cv_rmse_tuned": cv_rmse_tuned,
+            "search_method": chosen["search_method"],
+            "n_trials": int(chosen["n_trials"]),
+            "best_params": best_params,
+            "cv_rmse_default": float(chosen["cv_rmse_default"]),
+            "cv_rmse_tuned": float(chosen["cv_rmse_mean"]),
+            "optimisation_candidates": [
+                {
+                    "model": r["model"],
+                    "search_method": r["search_method"],
+                    "cv_rmse_mean": round(float(r["cv_rmse_mean"]), 4),
+                    "cv_rmse_std": round(float(r["cv_rmse_std"]), 4),
+                    "cv_ranking_spearman_mean": round(float(r["cv_ranking_spearman_mean"]), 4),
+                    "ranking_variety": int(r["ranking_variety"]),
+                }
+                for _, r in results.sort_values("cv_rmse_mean").iterrows()
+            ],
             "test_metrics": test_metrics,
             "baseline_test_metrics": baseline_test,
             "n_train_rows": len(train),
@@ -393,7 +566,7 @@ def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
             "pesticide_levels": pesticide_levels(train),
         }
         settings.models_dir.mkdir(parents=True, exist_ok=True)
-        joblib.dump(search.best_estimator_, settings.models_dir / MODEL_FILE)
+        joblib.dump(final_model, settings.models_dir / MODEL_FILE)
         write_practice_gains(settings)
         (settings.models_dir / MODEL_CARD_FILE).write_text(
             json.dumps(card, indent=2, ensure_ascii=False)
@@ -401,18 +574,19 @@ def run_optimisation(settings: Settings, log_artifacts: bool = True) -> dict:
 
         if log_artifacts:
             mlflow.log_dict(card, MODEL_CARD_FILE)
+            # skops n'accepte que des types déclarés sûrs : on n'autorise que l'arbre interne
+            # de HistGradientBoosting (modèle entraîné ici, pas un fichier externe) ;
+            # XGBoost / CatBoost : format cloudpickle.
+            fmt = (
+                {"skops_trusted_types": SKOPS_TRUSTED_TYPES}
+                if name == "hist_gradient_boosting"
+                else {"serialization_format": "cloudpickle"}
+            )
             mlflow.sklearn.log_model(
-                search.best_estimator_,
-                name="model",
-                input_example=train[features].head(3),
-                # Format skops : on n'autorise que ce type interne de HistGradientBoosting,
-                # sûr car le modèle vient d'être entraîné ici (pas un fichier externe).
-                skops_trusted_types=SKOPS_TRUSTED_TYPES,
+                final_model, name="model", input_example=train[features].head(3), **fmt
             )
 
-    print(
-        f"CV RMSE : défaut {cv_rmse_default:.3f} -> optimisé {cv_rmse_tuned:.3f} ({duration:.0f} s)"
-    )
+    print(f"\nRetenu : {name} | {chosen['search_method']} | CV RMSE {chosen['cv_rmse_mean']:.3f}")
     print(f"TEST    : {test_metrics}")
     print(f"Référence naïve (test) : {baseline_test}")
     return card
