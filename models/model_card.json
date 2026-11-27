@@ -1,8 +1,8 @@
 {
-  "trained_at": "2026-11-14T09:31:52+00:00",
-  "git_sha": "57b0223",
+  "trained_at": "2026-11-27T09:43:29+00:00",
+  "git_sha": "b345d8e",
   "dataset_sha256": "35a7bf9a0d5510030aeb31459c0af4ec746b642761bd6ec458366b9df17a18a5",
-  "mlflow_run_id": "263cffb6ffd140dca9f4822ae32304d0",
+  "mlflow_run_id": "4bbe9a28b3594eb79ae1d5ff33b86ec2",
   "model": "hist_gradient_boosting",
   "target": "log",
   "pesticides": "log",
@@ -12,6 +12,8 @@
     "rainfall_mm",
     "pesticides_tonnes"
   ],
+  "search_method": "random_search",
+  "n_trials": 30,
   "best_params": {
     "l2_regularization": 0.0006026889128682511,
     "learning_rate": 0.01699897838270077,
@@ -21,6 +23,56 @@
   },
   "cv_rmse_default": 5.137954590981356,
   "cv_rmse_tuned": 4.966684212605687,
+  "optimisation_candidates": [
+    {
+      "model": "catboost",
+      "search_method": "optuna",
+      "cv_rmse_mean": 4.7573,
+      "cv_rmse_std": 0.4064,
+      "cv_ranking_spearman_mean": 0.831,
+      "ranking_variety": 20
+    },
+    {
+      "model": "catboost",
+      "search_method": "random_search",
+      "cv_rmse_mean": 4.7757,
+      "cv_rmse_std": 0.4177,
+      "cv_ranking_spearman_mean": 0.8307,
+      "ranking_variety": 48
+    },
+    {
+      "model": "xgboost",
+      "search_method": "random_search",
+      "cv_rmse_mean": 4.8994,
+      "cv_rmse_std": 0.5459,
+      "cv_ranking_spearman_mean": 0.8339,
+      "ranking_variety": 98
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "search_method": "optuna",
+      "cv_rmse_mean": 4.917,
+      "cv_rmse_std": 0.5461,
+      "cv_ranking_spearman_mean": 0.8362,
+      "ranking_variety": 125
+    },
+    {
+      "model": "xgboost",
+      "search_method": "optuna",
+      "cv_rmse_mean": 4.9202,
+      "cv_rmse_std": 0.4956,
+      "cv_ranking_spearman_mean": 0.8308,
+      "ranking_variety": 103
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "search_method": "random_search",
+      "cv_rmse_mean": 4.9667,
+      "cv_rmse_std": 0.4412,
+      "cv_ranking_spearman_mean": 0.8433,
+      "ranking_variety": 136
+    }
+  ],
   "test_metrics": {
     "rmse": 4.668952567526498,
     "mae": 2.5880754768956487,

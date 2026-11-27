@@ -16,7 +16,7 @@
   </div>
   <div class="meta">
     <p><b>Destinataire :</b> Gabriel, Lead Data Scientist · <b>Auteur :</b> Maxime Barbier, Data Scientist ML junior</p>
-    <p><b>Version :</b> 1.3.1 · novembre 2026</p>
+    <p><b>Version :</b> 1.4.0 · novembre 2026</p>
     <p><b>Application :</b> <a href="https://agritech-crop-reco.streamlit.app">agritech-crop-reco.streamlit.app</a> · <b>API :</b> <a href="https://agritech-crop-api-latest.onrender.com/docs">agritech-crop-api-latest.onrender.com/docs</a></p>
     <p><b>Code source :</b> <a href="https://github.com/maximebarbier01/agritech-crop-reco">github.com/maximebarbier01/agritech-crop-reco</a></p>
   </div>
@@ -121,7 +121,7 @@
 <ul>
   <li><b>Une épreuve réaliste :</b> 21 pays ont été mis de côté dès le départ et n'ont servi à aucun réglage. Les résultats ci-dessous mesurent donc la performance sur des pays <b>que le modèle n'a jamais vus</b>, comme ce sera le cas pour un nouveau client.</li>
   <li><b>Un point de comparaison :</b> chaque modèle a été comparé à une estimation « au bon sens », le rendement habituel de la culture, sans tenir compte des conditions.</li>
-  <li><b>Une sélection systématique :</b> 18 configurations (3 familles de modèles, plusieurs préparations des données) ont été comparées, puis la meilleure a été réglée finement en testant 30 combinaisons de paramètres. Toutes les expériences sont tracées dans l'outil de suivi MLflow (annexe A).</li>
+  <li><b>Une sélection systématique :</b> 30 configurations (5 familles de modèles, dont les références du domaine XGBoost et CatBoost, et plusieurs préparations des données) ont été comparées. Les trois familles les plus prometteuses ont ensuite été réglées finement, chacune avec deux méthodes (recherche aléatoire et Optuna, 30 combinaisons chacune). Une règle fixée à l'avance départage les candidats : à précision équivalente, on retient celui qui <b>classe le mieux les cultures</b>. Toutes les expériences sont tracées dans l'outil de suivi MLflow (annexe A).</li>
 </ul>
 
 <figure>
@@ -136,7 +136,7 @@
 
 <div class="box">
   <h4>Pouvait-on faire mieux en réglant davantage le modèle&nbsp;?</h4>
-  <p>Non : multiplier par sept le nombre de réglages testés n'améliore l'erreur que de 0,04 t/ha, une différence plus de dix fois inférieure aux variations naturelles de la mesure. La marge de progrès est dans les <b>données</b> (mesures à la parcelle), pas dans le modèle.</p>
+  <p>Non. Les six candidats réglés (trois familles de modèles, deux méthodes de réglage) obtiennent des erreurs de 4,76 à 4,97 t/ha : des écarts plus petits que les variations naturelles de la mesure (environ ±0,45 t/ha d'un groupe de pays à l'autre). CatBoost prédit un peu mieux les tonnes, mais propose presque toujours <b>le même ordre de cultures</b> quelles que soient les conditions (20 classements différents sur 300 situations testées, contre 136 pour le modèle retenu) : il serait moins utile pour recommander. De même, multiplier par sept le nombre de réglages testés n'améliore l'erreur que de 0,04 t/ha. La marge de progrès est dans les <b>données</b> (mesures à la parcelle), pas dans le modèle.</p>
 </div>
 
 <div class="box">
@@ -269,26 +269,26 @@
 <section>
 <h2>Annexe A – Suivi des expériences (MLflow)</h2>
 
-<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Trois expériences ont été menées : la <b>sélection</b> du modèle (19 essais, dont la référence), son <b>optimisation</b> (30 réglages testés), puis le test d'<b>intrants FAOSTAT réels</b> (3 configurations, non retenues).</p>
+<p>Chaque essai de modèle est enregistré automatiquement avec ses paramètres et ses résultats, ce qui rend la démarche <b>traçable et reproductible</b>. Trois expériences ont été menées : la <b>sélection</b> du modèle (31 essais, dont la référence), son <b>optimisation</b> (6 recherches de 30 réglages, puis une décision), puis le test d'<b>intrants FAOSTAT réels</b> (3 configurations, non retenues).</p>
 
 <figure class="shot">
   <img src="../../reports/mlflow/01_selection.png" alt="MLflow : expérience de sélection">
-  <figcaption><b>Figure A1 – Sélection du modèle.</b> Les 19 configurations comparées, avec l'erreur en validation croisée par pays (<i>cv_rmse_mean</i>, en t/ha), la qualité du classement des cultures (<i>cv_ranking_spearman_mean</i>) et le nombre de classements différents que le modèle produit selon les conditions (<i>ranking_variety</i>) : les modèles « ridge » valent 1, ils recommandent toujours le même ordre et ont donc été écartés.</figcaption>
+  <figcaption><b>Figure A1 – Sélection du modèle.</b> Les 31 configurations comparées (Ridge, Random Forest, HistGradientBoosting, XGBoost, CatBoost et la référence), triées par erreur, avec l'erreur en validation croisée par pays (<i>cv_rmse_mean</i>, en t/ha), la qualité du classement des cultures (<i>cv_ranking_spearman_mean</i>) et le nombre de classements différents que le modèle produit selon les conditions (<i>ranking_variety</i>) : les modèles « ridge » valent 1, ils recommandent toujours le même ordre et ont donc été écartés.</figcaption>
 </figure>
 
 <figure class="shot">
   <img src="../../reports/mlflow/02_optimisation.png" alt="MLflow : expérience d'optimisation">
-  <figcaption><b>Figure A2 – Optimisation du modèle retenu.</b> Les 30 combinaisons de paramètres testées (« essai 00 » à « essai 29 », regroupés sous le run parent), avec leur erreur en validation croisée (<i>cv_rmse_mean</i>, <i>cv_rmse_std</i>) et les valeurs des paramètres.</figcaption>
+  <figcaption><b>Figure A2 – Optimisation : six candidats.</b> Chaque ligne est une recherche de 30 réglages (ses essais sont enregistrés comme sous-runs), pour une famille de modèles (<i>model</i>) et une méthode (<i>search_method</i> : recherche aléatoire ou Optuna). On lit l'erreur avant réglage (<i>cv_rmse_default</i>), après réglage (<i>cv_rmse_mean</i> ± <i>cv_rmse_std</i>), la qualité du classement des cultures et le nombre de classements différents (<i>ranking_variety</i>). La dernière ligne est la décision issue de la règle.</figcaption>
 </figure>
 
 <figure class="shot">
-  <img src="../../reports/mlflow/02_optimisation-chart.png" alt="MLflow : coordonnées parallèles de l'optimisation">
-  <figcaption><b>Figure A3 – Lecture visuelle de l'optimisation</b> (vue « coordonnées parallèles », essais affichés à l'écran). Chaque ligne est un essai ; les meilleurs (erreur la plus faible, axe de droite) passent par un taux d'apprentissage et un nombre de feuilles faibles : le modèle gagne à rester simple.</figcaption>
+  <img src="../../reports/mlflow/02_optimisation-chart.png" alt="MLflow : comparaison graphique des six candidats">
+  <figcaption><b>Figure A3 – Lecture visuelle de la décision.</b> À gauche, les six candidats (une couleur chacun). Au centre, le nombre de classements différents et la durée de chaque recherche. À droite, erreur (horizontal) et qualité du classement (vertical) : les erreurs sont proches, et HistGradientBoosting réglé par recherche aléatoire (bleu clair, en haut à droite) classe le mieux les cultures. CatBoost (rouge et violet) a l'erreur la plus faible mais un classement presque figé.</figcaption>
 </figure>
 
 <figure class="shot">
   <img src="../../reports/mlflow/03_run_final.png" alt="MLflow : détail du modèle final">
-  <figcaption><b>Figure A4 – Modèle final.</b> Paramètres retenus (<i>best_…</i>) et résultats sur les 21 pays de test (<i>test_rmse</i> 4,67 t/ha, <i>test_mae</i> 2,59 t/ha, <i>test_r2</i> 0,70, <i>test_ranking_spearman</i> 0,79).</figcaption>
+  <figcaption><b>Figure A4 – Modèle final (run « Décision »).</b> Erreur avant et après réglage (<i>cv_rmse_default</i> 5,14, <i>cv_rmse_tuned</i> 4,97 t/ha), puis résultats sur les 21 pays de test (<i>test_rmse</i> 4,67 t/ha, <i>test_mae</i> 2,59 t/ha, <i>test_r2</i> 0,70, <i>test_ranking_spearman</i> 0,79), à comparer à la référence (<i>baseline_test_…</i>). Le jeu de test n'est utilisé qu'à cette étape, une seule fois.</figcaption>
 </figure>
 
 <figure class="narrow">
