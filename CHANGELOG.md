@@ -3,6 +3,11 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions [SemVer](https://semver.org/lang/fr/).
 Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbier01/agritech-crop-api:X.Y.Z`.
 
+## [Non publié]
+
+### Corrigé
+- Workflow `train.yml` : limite portée de 30 à 60 minutes. Depuis la v1.4.0, l'optimisation enchaîne 6 recherches de 30 essais, chacun enregistré dans le MLflow distant (Neon) ; le premier run sur `main` avait été annulé à 30 minutes.
+
 ## [1.4.0] – 2026-11-27
 
 ### Ajouté

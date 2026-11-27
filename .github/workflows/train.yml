@@ -30,7 +30,8 @@ jobs:
   train:
     name: Pipeline d'entraînement + garde-fou
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # v1.4.0 : 6 recherches × 30 essais, chaque essai suivi à distance (Neon) → > 30 min
+    timeout-minutes: 60
     env:
       POETRY_VIRTUALENVS_CREATE: "true"   # même raison que ci.yml (pas de conda en CI)
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
