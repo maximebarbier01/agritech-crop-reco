@@ -3,6 +3,18 @@
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versions [SemVer](https://semver.org/lang/fr/).
 Chaque version taguée `vX.Y.Z` sur `main` publie l'image `docker.io/maximebarbier01/agritech-crop-api:X.Y.Z`.
 
+## [1.4.0] – 2026-11-27
+
+### Ajouté
+- **XGBoost et CatBoost** dans la sélection (MLflow `01-selection`) : 5 modèles × cible brute/log × pesticides brut/log/absent + référence naïve, soit 31 runs. CatBoost reçoit la culture en variable catégorielle native, via un adaptateur compatible scikit-learn (`CatBoostCropRegressor`).
+- **Optuna** (échantillonneur TPE) comparé à `RandomizedSearchCV` dans l'optimisation (MLflow `02-optimisation`) : les 3 familles de boosting (HistGradientBoosting, XGBoost, CatBoost) sont réglées par les deux méthodes, avec le même espace de recherche (`SEARCH_SPACES`), le même budget (30 essais) et la même validation par pays. Chaque recherche est un run parent avec ses essais en runs imbriqués, puis un run « Décision » applique la règle `select_config` aux 6 candidats.
+- `reports/optimisation_results.csv` (les 6 candidats) ; champs `search_method`, `n_trials` et `optimisation_candidates` dans `models/model_card.json`.
+- Notebook 04 : comparaison des 6 candidats et courbes de convergence Optuna / RandomizedSearch (figures `04_optimisation_candidates.png`, `04_optimisation_convergence.png`).
+
+### Résultat
+- Les 6 candidats sont statistiquement à égalité (RMSE CV de 4,76 à 4,97 t/ha, tous à moins d'un écart-type du meilleur). La règle retient **HistGradientBoosting + RandomizedSearch**, au meilleur classement des cultures (0,843). CatBoost a le RMSE le plus bas, mais après optimisation il ne produit plus que 20 à 48 classements différents sur 300 parcelles, contre 136.
+- **Modèle servi inchangé** : mêmes hyperparamètres et mêmes métriques de test qu'en 1.3.1 (RMSE 4,67 t/ha). L'API et ses dépendances ne changent pas : XGBoost, CatBoost et Optuna ne sont installés qu'avec le groupe Poetry `ml` (entraînement).
+
 ## [1.3.1] – 2026-11-26
 
 ### Documentation

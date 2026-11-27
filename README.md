@@ -56,11 +56,12 @@ tests/                  tests pytest
 | Entrées | culture, température, pluie, pesticides (ni pays ni année : non saisis dans l'application) |
 | Test | 21 pays figés dans `configs/test_countries.json`, jamais utilisés pour régler |
 | Validation | `GroupKFold` à 5 plis **par pays** |
-| Sélection (MLflow `agritech-crop-yield-01-selection`) | référence naïve + 3 modèles × cible brute/log × pesticides brut/log/absent |
-| Optimisation (MLflow `agritech-crop-yield-02-optimisation`) | `RandomizedSearchCV`, 30 essais |
-| Modèle retenu | HistGradientBoosting, cible log, pesticides log |
+| Sélection (MLflow `agritech-crop-yield-01-selection`) | référence naïve + 5 modèles (Ridge, Random Forest, HistGradientBoosting, XGBoost, CatBoost) × cible brute/log × pesticides brut/log/absent, soit 31 runs |
+| Optimisation (MLflow `agritech-crop-yield-02-optimisation`) | 3 familles de boosting × 2 méthodes (`RandomizedSearchCV` et Optuna TPE), 30 essais chacune, même espace de recherche |
+| Règle de choix | égalité si moins d'un écart-type du meilleur RMSE, classement des cultures non figé, puis meilleur classement des cultures |
+| Modèle retenu | HistGradientBoosting (RandomizedSearch), cible log, pesticides log |
 
-Résultats sur les pays de test : RMSE 4,67 t/ha (référence 5,79), R² 0,70, classement des cultures 0,79 (référence 0,72). Détails et interprétation : `notebooks/04_modelisation.ipynb` (sélection, optimisation, évaluation, interprétation).
+Résultats sur les pays de test : RMSE 4,67 t/ha (référence 5,79), R² 0,70, classement des cultures 0,79 (référence 0,72). Les 6 candidats optimisés sont statistiquement à égalité (RMSE CV de 4,76 à 4,97 t/ha, détail dans `reports/optimisation_results.csv`) : HistGradientBoosting est retenu pour son meilleur classement des cultures. Optuna converge plus vite que la recherche aléatoire, mais les deux atteignent le même plafond. Détails et interprétation : `notebooks/04_modelisation.ipynb` (sélection, optimisation, évaluation, interprétation).
 
 ```bash
 python -m agritech_crop_reco.modeling.split    # une seule fois : fige les pays de test (déjà fait)
@@ -173,7 +174,7 @@ poetry install --with ml,api,front,eda,dev   # installe dans l'env conda (poetry
 cp .env.example .env
 ```
 
-Groupes Poetry : `main` (cœur du modèle), `ml` (MLflow), `api`, `front`, `eda` (notebooks), `dev` (tests, lint).
+Groupes Poetry : `main` (cœur du modèle), `ml` (MLflow, XGBoost, CatBoost, Optuna : entraînement uniquement), `api`, `front`, `eda` (notebooks), `dev` (tests, lint).
 
 ## Données
 

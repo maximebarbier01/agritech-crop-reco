@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from agritech_crop_reco.modeling.baseline import CropMedianRegressor
-from agritech_crop_reco.modeling.features import build_model, feature_columns
+from agritech_crop_reco.modeling.features import MODELS, build_model, feature_columns
 from agritech_crop_reco.modeling.metrics import ranking_spearman, regression_metrics
 from agritech_crop_reco.modeling.split import make_test_countries, split_train_test
 from agritech_crop_reco.modeling.train import candidate_configs, cross_validate
@@ -71,7 +71,7 @@ def test_feature_columns_variants(pesticides, expected):
     assert "country" not in cols and "year" not in cols  # non demandés par l'application
 
 
-@pytest.mark.parametrize("model", ["ridge", "random_forest", "hist_gradient_boosting"])
+@pytest.mark.parametrize("model", MODELS)
 @pytest.mark.parametrize("target", ["raw", "log"])
 def test_every_candidate_fits_and_predicts_positive_t_ha(data, model, target):
     features = feature_columns("log")
@@ -89,8 +89,8 @@ def test_cross_validate_returns_one_row_per_fold(data):
 
 
 def test_candidate_grid_size():
-    # 1 référence + 3 modèles × 2 cibles × 3 variantes pesticides
-    assert len(candidate_configs()) == 19
+    # 1 référence + 5 modèles × 2 cibles × 3 variantes pesticides
+    assert len(candidate_configs()) == 31
 
 
 def _selection_row(model, rmse, std, rank, variety, pesticides="log"):
@@ -129,3 +129,53 @@ def test_ranking_variety_detects_additive_model(data):
     features = feature_columns("log")
     ridge = build_model("ridge", "log", "log", seed=0).fit(data[features], data["yield_t_ha"])
     assert ranking_variety(ridge, features, probe) == 1
+
+
+# ---------------------------------------------------------------- étape 2 : optimisation
+
+
+def test_catboost_adapter_survives_clone_and_set_params(data):
+    """CatBoost brut casse sklearn.clone ; l'adaptateur doit le supporter (CV, recherches)."""
+    from sklearn.base import clone
+
+    features = feature_columns("log")
+    est = build_model("catboost", "log", "log", seed=0)
+    est = clone(est).set_params(regressor__model__iterations=20, regressor__model__depth=3)
+    pred = est.fit(data[features], data["yield_t_ha"]).predict(data[features])
+    assert (pred > 0).all()
+
+
+@pytest.mark.parametrize("name", ["hist_gradient_boosting", "xgboost", "catboost"])
+def test_both_search_methods_share_the_same_space(name):
+    """RandomizedSearchCV et Optuna explorent exactement les mêmes plages."""
+    import optuna
+
+    from agritech_crop_reco.modeling.train import SEARCH_SPACES, scipy_space, suggest_params
+
+    space = SEARCH_SPACES[name]
+    laws = scipy_space(name)
+    assert set(laws) == set(space)
+    for k, (_, lo, hi) in space.items():
+        draws = laws[k].rvs(size=500, random_state=0)
+        assert lo <= draws.min() and draws.max() <= hi
+
+    trial = optuna.trial.FixedTrial({k: lo for k, (_, lo, _) in space.items()})
+    assert suggest_params(trial, name) == {k: lo for k, (_, lo, _) in space.items()}
+
+
+def test_family_starting_points_one_variant_per_boosting_family():
+    from agritech_crop_reco.modeling.train import family_starting_points
+
+    selection = pd.DataFrame(
+        [
+            _selection_row("ridge", 4.9, 0.4, 0.82, 1),
+            _selection_row("hist_gradient_boosting", 5.1, 0.4, 0.83, 180, "raw"),
+            _selection_row("hist_gradient_boosting", 5.1, 0.4, 0.83, 180, "log"),
+            _selection_row("xgboost", 5.4, 0.4, 0.82, 240),
+            _selection_row("catboost", 5.0, 0.4, 0.83, 150),
+            _selection_row("catboost", 5.6, 0.4, 0.83, 130, "none"),
+        ]
+    )
+    starts = family_starting_points(selection)
+    assert list(starts["model"]) == ["hist_gradient_boosting", "xgboost", "catboost"]
+    assert (starts["pesticides"] == "log").all()
